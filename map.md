@@ -24,3 +24,32 @@
 - [CVE details](https://www.cvedetails.com/)
 - Keyword lookup (XSS, SSRF, SQLi ...)
 - Identify PoC URL as web attacks DB
+
+## Launch PoC
+
+### Setup Environment
+
+- Setup Docker
+    - create network (static IP for containers)
+    - create volume
+- CRS Docker container
+    - Container image from Env variable
+    - Attach volume (logs)
+    - Attach network & static IP
+- PoC Docker container
+    - Container image from Env variable
+    - Attach volume (PoC & it's launch code)
+    - Attach network & static IP
+
+### PoC processing
+
+- Plain text payload
+    - No / low processing
+    - write to Docker volume
+    - Write respective launch code
+
+- Code PoC
+    - Extract payload (URL / Body)
+    - Trigger PoC with CRS container URL as parameter
+    - write to Docker volume
+    - Write respective launch code
