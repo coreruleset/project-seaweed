@@ -53,3 +53,4 @@
     - Trigger PoC with CRS container URL as parameter
     - write to Docker volume
     - Write respective launch code
+- [Nuclei Action](https://github.com/projectdiscovery/nuclei-action)
