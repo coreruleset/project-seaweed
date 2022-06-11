@@ -16,7 +16,8 @@
 - [Nuclei templates](https://github.com/projectdiscovery/nuclei-templates)
 - [NVD project](https://github.com/projectdiscovery/nvd)
 - [CVE details](https://www.cvedetails.com/)
-
+- [Exploit DB](www.exploit-db.com)
+    - https://www.exploit-db.com/search?cve=2022-29298
 ## Classify web attacks
 
 - [Nuclei](https://github.com/projectdiscovery/nuclei)
