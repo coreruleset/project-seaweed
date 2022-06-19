@@ -1,4 +1,3 @@
-import os
 import sys
 import bs4
 import requests
@@ -24,8 +23,9 @@ def main(url):
         print("URL not reachable!")
         sys.exit(0)
     soup=bs4.BeautifulSoup(response.text,features="html.parser")
-    PoC=str(soup.find('code').text)
+    PoC=soup.find('code')
     if PoC!=None:
+        PoC=str(PoC.text)
         print(PoC,end="\n\n\n")
         print(re.findall("https?://.*",PoC))
     else:
