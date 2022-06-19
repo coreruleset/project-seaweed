@@ -18,6 +18,7 @@
 - [CVE details](https://www.cvedetails.com/)
 - [Exploit DB](www.exploit-db.com)
     - https://www.exploit-db.com/search?cve=2022-29298
+- [Rapid 7](https://www.rapid7.com/db)
 ## Classify web attacks
 
 - [Nuclei](https://github.com/projectdiscovery/nuclei)
