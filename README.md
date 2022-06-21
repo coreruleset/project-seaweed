@@ -9,8 +9,11 @@ Tasks for the week
 
 1. Continue setting up Python project: typing, documentation, CI/CD
 2. Pure python implementation to:
-- create CRS docker infra (this week)
-- running nuclei CVEs (this week)
+- create CRS docker infra
+- running nuclei CVEs
+
+Extra Tasks
+
 - identify false negatives
 - Classify false negatives according to severity and type of attack
 - generate report
