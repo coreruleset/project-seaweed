@@ -12,7 +12,15 @@ services:
     environment:
       - BACKEND=http://httpd-server
       - PARANOIA=4
-    ports:
-      - "8080:80"
     depends_on:
       - web_server
+  nuclei:
+    image: projectdiscovery/nuclei:latest
+    hostname: nuclei
+    container_name: nuclei
+    entrypoint: nuclei -u https://sandbox.coreruleset.org -t /root/nuclei-templates/cves/2022/CVE-2022-26134.yaml -srd /results
+    volumes:
+      - ./results:/results:rw
+    depends_on:
+      - web_server
+      - modsec_crs
