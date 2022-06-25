@@ -1,4 +1,5 @@
 import sys
+from typing_extensions import Self
 import click
 import docker
 import tempfile
@@ -6,7 +7,7 @@ import os
 
 
 class cve_tester:
-    def __init__(self) -> None:
+    def __init__(self: Self) -> None:
         self.waf_image = "owasp/modsecurity-crs:apache"
         self.web_server_image = "httpd"
         self.nuclei_image = "projectdiscovery/nuclei:latest"
@@ -17,13 +18,13 @@ class cve_tester:
         self.client = docker.client.from_env()
         self.temp_dir = tempfile.TemporaryDirectory().name
 
-    def printer(self, msg, add=True):
+    def printer(self: Self, msg: str, add: bool = True) -> None:
         if add:
             click.secho(f"[+] {msg}", fg="green")
         else:
             click.secho(f"[-] {msg}", fg="red")
 
-    def create_crs(self):
+    def create_crs(self: Self) -> None:
         self.printer("Creating docker network...")
         self.network = self.client.networks.create(self.network_name, driver="bridge")
         self.printer("Creating apache server container...")
@@ -46,7 +47,7 @@ class cve_tester:
             environment=self.waf_env,
         )
 
-    def create_nuclei(self):
+    def create_nuclei(self: Self) -> None:
         self.printer("Creating nuclei container...")
         self.client.containers.run(
             self.nuclei_image,
@@ -57,7 +58,7 @@ class cve_tester:
             entrypoint=f"nuclei -u http://{self.waf_name} -t /root/nuclei-templates/cves/2022/CVE-2022-26134.yaml -srd {self.temp_dir}",
         )
 
-    def change_permission(self):
+    def change_permission(self: Self) -> None:
         self.printer("Adding permissions to output folder...")
         self.client.containers.run(
             "alpine",
@@ -73,7 +74,7 @@ class cve_tester:
             command=f"sh -c 'chmod -R 777 {self.temp_dir}'",
         )
 
-    def generate_raw(self):
+    def generate_raw(self: Self) -> None:
         try:
             self.printer(f"Results stored in {self.temp_dir}")
             self.create_crs()
@@ -84,7 +85,7 @@ class cve_tester:
             sys.exit(1)
         print([x for x in os.walk(self.temp_dir)])
 
-    def __del__(self):
+    def __del__(self: Self) -> None:
         self.printer("Cleaning up...", add=False)
         try:
             self.web_server_obj.stop()

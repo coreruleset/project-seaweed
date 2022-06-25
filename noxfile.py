@@ -7,7 +7,9 @@ locations = ["src", "tests", "noxfile.py"]
 python_versions = ["3.9.13"]
 
 
-def install_with_constraints(session, *args, **kwargs):
+def install_with_constraints(
+    session: nox.options.sessions, *args: str, **kwargs: str
+) -> None:
     with tempfile.NamedTemporaryFile() as requirements:
         session.run(
             "poetry",
@@ -22,7 +24,7 @@ def install_with_constraints(session, *args, **kwargs):
 
 
 @nox.session(python=python_versions)
-def tests(session):
+def tests(session: nox.options.sessions) -> None:
     args = session.posargs or ["--cov", "-m", "not e2e"]
     session.run("poetry", "install", "--no-dev", external=True)
     install_with_constraints(
@@ -32,23 +34,28 @@ def tests(session):
 
 
 @nox.session(python=python_versions)
-def black(session):
+def black(session: nox.options.sessions) -> None:
     args = session.posargs or locations
     install_with_constraints(session, "black")
     session.run("black", *args)
 
 
 @nox.session(python=python_versions)
-def lint(session):
+def lint(session: nox.options.sessions) -> None:
     args = session.posargs or locations
     install_with_constraints(
-        session, "flake8", "flake8-bandit", "flake8-black", "flake8-bugbear"
+        session,
+        "flake8",
+        "flake8-bandit",
+        "flake8-black",
+        "flake8-bugbear",
+        "flake8-annotations",
     )
     session.run("flake8", *args)
 
 
 @nox.session(python=python_versions)
-def safety(session):
+def safety(session: nox.options.sessions) -> None:
     with tempfile.NamedTemporaryFile() as requirements:
         session.run(
             "poetry",

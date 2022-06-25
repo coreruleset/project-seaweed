@@ -22,6 +22,8 @@ Progress
 
 Created docker modsec-crs infrastructure in python and ran nuclei CVE templates against it. Finally, fetched the responses for further processing.
 
+Added type hinting
+
 notes:
 
 nuclei looks for "requests" keyword in templates to identify HTTP CVEs.
