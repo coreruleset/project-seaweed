@@ -17,7 +17,7 @@ def tester() -> None:
 
 
 @click.command()
-@click.option("-u", "--url", required=False, help="URL where the PoC is hosted")
+@click.option("-u", "--url", required=True, help="URL where the PoC is hosted")
 def extract_payload(url: str) -> None:
     extract(url=url)
 
