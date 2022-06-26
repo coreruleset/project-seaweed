@@ -1,6 +1,6 @@
 [flake8]
 select = ANN,B,BLK,C,E,F,S,W
 max-complexity = 10
-ignore = E203,E501,W503
+ignore = E203,E501,W503,ANN101
 max-line-length = 88
 per-file-ignores = tests/*:S101
