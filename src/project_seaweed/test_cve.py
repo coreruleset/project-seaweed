@@ -4,9 +4,11 @@ import docker
 import tempfile
 import os
 import traceback
+import re
+import logging
 
 class cve_tester:
-    def __init__(self, cve_id: list = [], waf_url: str = "crs") -> None:
+    def __init__(self, cve_id: list, waf_url: str = "crs") -> None:
         if waf_url == "crs":
             self.waf_image = "owasp/modsecurity-crs:apache"
             self.web_server_image = "httpd"
@@ -57,8 +59,12 @@ class cve_tester:
             cves = []
             for cve in self.cve_id:
                 cve = cve.upper()
-                year = cve.split("-")[1]
-                cves.append(path.format(year, cve))
+                if re.match("CVE-\d{4}-\d{1,10}",cve):
+                    year = cve.split("-")[1]
+                    cves.append(path.format(year, cve))
+                else:
+                    logging.info(f"{cve} does not match pattern 'CVE-\d{{4}}-\d{{1,10}}'. Skippping...")
+                    continue
             return f"-t {','.join(cves)}"
         else:
             return "-t cves -pt http"
@@ -106,13 +112,13 @@ class cve_tester:
         self.printer("Cleaning up...", add=False)
         try:
             self.web_server_obj.stop()
-        except AttributeError as e:
+        except AttributeError:
             pass
         try:
             self.waf_obj.stop()
-        except AttributeError as e:
+        except AttributeError:
             pass
         try:
             self.network.remove()
-        except AttributeError as e:
+        except AttributeError:
             pass

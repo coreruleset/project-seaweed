@@ -11,29 +11,31 @@ import logging
     "-l",
     "--level",
     type=click.Choice(["debug", "info"], case_sensitive=False),
-    help="Choose output mode",
+    help="Choose log level",
     default="warning",
     show_default=True,
 )
-def main(level) -> None:
-    logging.basicConfig(level=level.upper())
+def main(level: str) -> None:
+    logging.basicConfig(level=level.upper(),format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 @click.option(
-    "--cve_id",
+    "--cve-id",
+    "cve_id",
     required=False,
     help="CVE IDs (CVE-2022-1211, CVE-2022-1609 ...)",
     default="",
 )
 @click.option(
-    "--waf_url",
+    "--waf-url",
+    "waf_url",
     required=False,
     help="URL for alternate WAF test (https://cloudflaredomain.com)",
     show_default=True,
     default="crs",
 )
 @click.command()
-def tester(cve_id, waf_url) -> None:
+def tester(cve_id: str, waf_url: str) -> None:
     test = cve_tester(cve_id=cve_id.split(","), waf_url=waf_url)
     test.generate_raw()
 
