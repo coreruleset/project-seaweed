@@ -1,28 +1,28 @@
 # Project Seaweed
 
-## GSoC meet #4 Summary
+## GSoC meet #5 Summary
 
-Reviewed the python project setup. Went through the entire false negatives classification process and decided to improve our classification methods and automate the entire process which was being performed manually. Will be using libraries such as docker SDK for python & py-nuclei to achieve this. 
-Reviewed the analyses of tools such as vulcrawler & xlocate. Reached the decision to keep them as an extra source of information for now.
+Reviewed the progress regarding creating Crs-modsec docker setup and launching exploits using nuclei docker containers. @felipe is going try and setup the project on his system and later open issues on [Project github repo](https://github.com/vandanrohatgi/Project-Seaweed) regarding any changes / improvements. 
 
 Tasks for the week
 
-1. Continue setting up Python project: typing, documentation, CI/CD
-2. Pure python implementation to:
-- create CRS docker infra
-- running nuclei CVEs
-
-Extra Tasks
-
+1. Continue setting up Python project following [https://medium.com/@cjolowicz/hypermodern-python-d44485d9d769]:
+- Documentation
+- CI/CD
+2. Continue working on:
+- Provide a CLI parameter to define type of cve to lunch (XSS, SQLi etc.)
+- Create project setup README.md
 - identify false negatives
+
+extra Tasks:
+
 - Classify false negatives according to severity and type of attack
 - generate report
 
+
+
 Progress
 
-Created docker modsec-crs infrastructure in python and ran nuclei CVE templates against it. Finally, fetched the responses for further processing.
-
-Added type hinting
 
 notes:
 
