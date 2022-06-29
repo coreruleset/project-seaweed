@@ -19,11 +19,26 @@ extra Tasks:
 - Classify false negatives according to severity and type of attack
 - generate report
 
+## Installation
 
+1. Clone the repository
 
-Progress
+`git clone https://github.com/vandanrohatgi/Project-Seaweed.git`
 
+2. Install poetry
 
-notes:
+[https://python-poetry.org/docs/#installation](https://python-poetry.org/docs/#installation)
 
-nuclei looks for "requests" keyword in templates to identify HTTP CVEs.
+3. Select Python version
+
+The project is tested on Python `3.9.13`. If you have multiple python versions installed, use the following command:
+
+`poetry env use 3.9`
+
+4. Install the project
+
+`poetry install`
+
+5. Finally try to run
+
+`poetry run project-seaweed`
