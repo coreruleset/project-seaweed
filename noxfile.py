@@ -98,6 +98,13 @@ def xdoctest(session: Session) -> None:
     session.run("python", "-m", "xdoctest", package, *args)
 
 @nox.session(python=python_versions)
+def typeguard(session):
+    args = session.posargs or ["-m", "not e2e"]
+    session.run("poetry", "install", "--no-dev", external=True)
+    install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
+    session.run("pytest", f"--typeguard-packages={package}", *args)
+
+@nox.session(python=python_versions)
 def docs(session: Session) -> None:
     """Build the documentation."""
     session.run("poetry", "install", "--no-dev", external=True)
