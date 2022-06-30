@@ -1,7 +1,9 @@
+"""Entrypoint program & CLI interface"""
+
 import click
 from .extract_payload import extract
 from . import __version__
-from .test_cve import cve_tester
+from .cve_tester import cve_tester
 import logging
 
 
@@ -10,13 +12,21 @@ import logging
 @click.option(
     "-l",
     "--level",
-    type=click.Choice(["debug", "info"], case_sensitive=False),
+    type=click.Choice(["debug", "info", "warning"], case_sensitive=False),
     help="Choose log level",
     default="warning",
     show_default=True,
 )
 def main(level: str) -> None:
-    logging.basicConfig(level=level.upper(),format='%(asctime)s - %(levelname)s - %(message)s')
+    """
+    Entrypoint function for the whole project. Also defines the logging format and level.
+
+    Args:
+        level: declares the logging level for the project (info|debug|none)
+    """
+    logging.basicConfig(
+        level=level.upper(), format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
 
 @click.option(
@@ -36,6 +46,12 @@ def main(level: str) -> None:
 )
 @click.command()
 def tester(cve_id: str, waf_url: str) -> None:
+    """
+    Triggers the cve testing process using the cve_test class object and then calling the generate_raw().
+    Args:
+        cve_id: comma separated values for cve(s) to test.
+        waf_url: specify a waf other than modsec-crs
+    """
     test = cve_tester(cve_id=cve_id.split(","), waf_url=waf_url)
     test.generate_raw()
 
@@ -43,6 +59,12 @@ def tester(cve_id: str, waf_url: str) -> None:
 @click.command()
 @click.option("-u", "--url", required=True, help="URL where the PoC is hosted")
 def extract_payload(url: str) -> None:
+    """
+    extracts the exploit PoC from the given webpage URL.
+
+    Args:
+        url: url of the webpage to parse
+    """
     extract(url=url)
 
 

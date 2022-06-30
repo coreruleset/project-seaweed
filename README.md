@@ -29,16 +29,20 @@ extra Tasks:
 
 [https://python-poetry.org/docs/#installation](https://python-poetry.org/docs/#installation)
 
-3. Select Python version
+3. Install docker
+
+[https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
+
+4. Select Python version
 
 The project is tested on Python `3.9.13`. If you have multiple python versions installed, use the following command:
 
 `poetry env use 3.9`
 
-4. Install the project
+5. Install the project
 
 `poetry install`
 
-5. Finally try to run
+6. Finally try to run
 
 `poetry run project-seaweed`
