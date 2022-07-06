@@ -8,13 +8,12 @@ Nox Sessions
 """
 
 nox.options.sessions = "lint", "tests", "safety", "mypy"
-locations = ["src", "tests", "noxfile.py","docs/conf.py"]
+locations = ["src", "tests", "noxfile.py", "docs/conf.py"]
 python_versions = ["3.9.13"]
-package="project_seaweed"
+package = "project_seaweed"
 
-def install_with_constraints(
-    session: Session, *args: str, **kwargs: str
-) -> None:
+
+def install_with_constraints(session: Session, *args: str, **kwargs: str) -> None:
     """Install packages constrained by Poetry's lock file."""
     with tempfile.NamedTemporaryFile() as requirements:
         session.run(
@@ -89,6 +88,7 @@ def mypy(session: Session) -> None:
     install_with_constraints(session, "mypy")
     session.run("mypy", *args)
 
+
 @nox.session(python=python_versions)
 def xdoctest(session: Session) -> None:
     """Run examples with xdoctest."""
@@ -97,12 +97,14 @@ def xdoctest(session: Session) -> None:
     install_with_constraints(session, "xdoctest")
     session.run("python", "-m", "xdoctest", package, *args)
 
+
 @nox.session(python=python_versions)
 def typeguard(session):
     args = session.posargs or ["-m", "not e2e"]
     session.run("poetry", "install", "--no-dev", external=True)
     install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
     session.run("pytest", f"--typeguard-packages={package}", *args)
+
 
 @nox.session(python=python_versions)
 def docs(session: Session) -> None:

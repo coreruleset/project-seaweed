@@ -4,9 +4,9 @@ import sys
 import click
 import docker
 import tempfile
-import os
 import traceback
 import re
+import os
 import logging
 import requests
 
@@ -37,11 +37,15 @@ class cve_tester:
 
     """
 
-    def __init__(self, cve_id: list, waf_url: str = "crs") -> None:
+    def __init__(self, cve_id: list, directory: str, waf_url: str = "crs") -> None:
         """
         Initializes attirbutes conditionally.
         If the user provides a waf url, modsec-crs setup is not created. Creates all resources otherwise.
         The availability of waf_url is tested by making a HEAD request.
+
+        Args:
+            cve_id: list of cves to test. Tests all by default
+            waf_url: define a waf url to test. Uses modsec-crs by default.
         """
         if waf_url == "crs":
             logging.info("Initializing modsec-crs setup")
@@ -60,10 +64,17 @@ class cve_tester:
                 sys.exit(1)
             logging.info(f"using {waf_url} as target")
             self.waf_url = waf_url
+        if directory == "temp":
+            self.temp_dir = tempfile.TemporaryDirectory().name
+            logging.info(f"Storing results in {self.temp_dir}")
+        else:
+            if os.path.isdir(directory):
+                self.temp_dir = os.path.abspath(directory)
+            else:
+                sys.exit("Specified directory does not exist. Exiting...")
         self.cve_id = cve_id
         self.nuclei_image = "projectdiscovery/nuclei:latest"
         self.client = docker.client.from_env()
-        self.temp_dir = tempfile.TemporaryDirectory().name
 
     def printer(self, msg: str, add: bool = True) -> None:
         """
@@ -184,7 +195,8 @@ class cve_tester:
         except Exception:
             print(traceback.format_exc())
             sys.exit(1)
-        print([x for x in os.walk(self.temp_dir)])
+        # print([x for x in os.walk(self.temp_dir)])
+        return self.temp_dir
 
     def __del__(self) -> None:
         """

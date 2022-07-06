@@ -37,7 +37,7 @@ def extract(url: str) -> None:
             raise req_ex.InvalidURL
     except (req_ex.ConnectTimeout, req_ex.InvalidURL):
         sys.exit("URL not reachable!")
-    webpage=requests.get(url=url,headers=headers)
+    webpage = requests.get(url=url, headers=headers)
     soup = bs4.BeautifulSoup(webpage.text, features="html.parser")
     PoC = soup.find("code")
     if PoC is not None:

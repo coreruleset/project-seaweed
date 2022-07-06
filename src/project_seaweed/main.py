@@ -44,15 +44,22 @@ def main(level: str) -> None:
     show_default=True,
     default="crs",
 )
+@click.option(
+    "--out",
+    "directory",
+    required=False,
+    help="Specify directory to store output",
+    default="temp",
+)
 @click.command()
-def tester(cve_id: str, waf_url: str) -> None:
+def tester(cve_id: str, directory: str, waf_url: str) -> None:
     """
     Triggers the cve testing process using the cve_test class object and then calling the generate_raw().
     Args:
         cve_id: comma separated values for cve(s) to test.
         waf_url: specify a waf other than modsec-crs
     """
-    test = cve_tester(cve_id=cve_id.split(","), waf_url=waf_url)
+    test = cve_tester(cve_id=cve_id.split(","), directory=directory, waf_url=waf_url)
     test.generate_raw()
 
 
