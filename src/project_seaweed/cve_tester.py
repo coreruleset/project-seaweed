@@ -11,7 +11,7 @@ import logging
 import requests
 
 
-class cve_tester:
+class Cve_tester:
     """Tester class
 
     Sets up apache server, modsecurity Waf running rules from Core rule set, nuclei container
@@ -32,9 +32,6 @@ class cve_tester:
         cve_id: list of cve(s) to test. By default runs all cves
         client: docker client to manage docker resources
         temp_dir: name of the temporary directory where results from nuclei are stored
-    Returns:
-        Directory name which contains results
-
     """
 
     def __init__(self, cve_id: list, directory: str, waf_url: str = "crs") -> None:
@@ -46,6 +43,7 @@ class cve_tester:
         Args:
             cve_id: list of cves to test. Tests all by default
             waf_url: define a waf url to test. Uses modsec-crs by default.
+            directory: directory to store program output
         """
         if waf_url == "crs":
             logging.info("Initializing modsec-crs setup")
@@ -60,8 +58,7 @@ class cve_tester:
             try:
                 requests.head(waf_url)
             except BaseException:
-                logging.debug(f"{waf_url} not reachable! exiting program...")
-                sys.exit(1)
+                sys.exit(f"{waf_url} not reachable! exiting program...")
             logging.info(f"using {waf_url} as target")
             self.waf_url = waf_url
         if directory == "temp":
@@ -120,14 +117,15 @@ class cve_tester:
         creates the cli arguements for launching nuclei.
         Uses regex to check format for supplied CVEs, skips cve otherwise.
 
-        Args:
-            self.cve_id: list of cves to test. If empty, runs all cves.
         Returns:
-            -t /root/nuclei-templates/cves/2022/CVE-2022-1234.yaml,/root/nuclei-templates/cves/2021/CVE-2021-4567.yaml
-            if self.cve_id=["CVE-2022-1234","CVE-2021-4567"]
+            str: CLI parameters specifying CVE(s) to run.
 
-            -t cves -pt http
+        Example:
+            if self.cve_id=["CVE-2022-1234","CVE-2021-4567"]
+            '-t /root/nuclei-templates/cves/2022/CVE-2022-1234.yaml,/root/nuclei-templates/cves/2021/CVE-2021-4567.yaml'
+
             if self.cve_id=[""]
+            '-t cves -pt http'
         """
 
         if self.cve_id != [""]:
@@ -159,7 +157,7 @@ class cve_tester:
             detach=False,
             network=self.network_name or "",
             volumes={self.temp_dir: {"bind": self.temp_dir, "mode": "rw"}},
-            entrypoint=f"nuclei -u {self.waf_url} {self.get_cves()} -srd {self.temp_dir}",
+            entrypoint=f"nuclei -u {self.waf_url} {self.get_cves()} -srd {self.temp_dir}",  # nuclei -u http://crs-waf -t cves -pt http -srd /tmp/tmp_1234
         )
 
     def change_permission(self) -> None:

@@ -1,9 +1,10 @@
 """Entrypoint program & CLI interface"""
 
+from . import __version__
 import click
 from .extract_payload import extract
-from . import __version__
-from .cve_tester import cve_tester
+from .classify import Classifier
+from .cve_tester import Cve_tester
 import logging
 
 
@@ -27,6 +28,7 @@ def main(level: str) -> None:
     logging.basicConfig(
         level=level.upper(), format="%(asctime)s - %(levelname)s - %(message)s"
     )
+    logging.info(f"Logging enabled. Level: {level}")
 
 
 @click.option(
@@ -53,14 +55,16 @@ def main(level: str) -> None:
 )
 @click.command()
 def tester(cve_id: str, directory: str, waf_url: str) -> None:
-    """
-    Triggers the cve testing process using the cve_test class object and then calling the generate_raw().
+    """Triggers the cve testing process using the cve_test class object and then calling the generate_raw().
+
     Args:
         cve_id: comma separated values for cve(s) to test.
         waf_url: specify a waf other than modsec-crs
+        directory: specify directory to store program output
     """
-    test = cve_tester(cve_id=cve_id.split(","), directory=directory, waf_url=waf_url)
-    test.generate_raw()
+    test = Cve_tester(cve_id=cve_id.split(","), directory=directory, waf_url=waf_url)
+    result_directory=test.generate_raw()
+    classify=Classifier(result_directory)
 
 
 @click.command()

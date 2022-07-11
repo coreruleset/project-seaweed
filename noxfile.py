@@ -7,7 +7,7 @@ from nox.sessions import Session
 Nox Sessions
 """
 
-nox.options.sessions = "lint", "tests", "safety", "mypy"
+nox.options.sessions = "lint", "tests", "safety", "mypy", "typeguard"
 locations = ["src", "tests", "noxfile.py", "docs/conf.py"]
 python_versions = ["3.9.13"]
 package = "project_seaweed"
@@ -99,7 +99,8 @@ def xdoctest(session: Session) -> None:
 
 
 @nox.session(python=python_versions)
-def typeguard(session):
+def typeguard(session: Session) -> None:
+    """Runtime type checking"""
     args = session.posargs or ["-m", "not e2e"]
     session.run("poetry", "install", "--no-dev", external=True)
     install_with_constraints(session, "pytest", "pytest-mock", "typeguard")
