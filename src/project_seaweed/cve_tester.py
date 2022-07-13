@@ -9,7 +9,7 @@ import re
 import os
 import logging
 import requests
-
+from .util import is_reachable
 
 class Cve_tester:
     """Tester class
@@ -45,7 +45,7 @@ class Cve_tester:
             waf_url: define a waf url to test. Uses modsec-crs by default.
             directory: directory to store program output
         """
-        if waf_url == "crs":
+        if waf_url is None:
             logging.info("Initializing modsec-crs setup")
             self.waf_image = "owasp/modsecurity-crs:apache"
             self.web_server_image = "httpd"
@@ -54,15 +54,12 @@ class Cve_tester:
             self.waf_url = f"http://{self.waf_name}"
             self.waf_env = ["PARANOIA=4", f"BACKEND=http://{self.web_server_name}"]
             self.network_name = "seaweed-network"
-        else:
-            try:
-                requests.head(waf_url)
-            except BaseException:
-                sys.exit(f"{waf_url} not reachable! exiting program...")
+        elif is_reachable(waf_url):
             logging.info(f"using {waf_url} as target")
             self.waf_url = waf_url
-        if directory == "temp":
-            self.temp_dir = tempfile.TemporaryDirectory().name
+        
+        if directory is None:
+            self.temp_dir = tempfile.mkdtemp()
             logging.info(f"Storing results in {self.temp_dir}")
         else:
             if os.path.isdir(directory):

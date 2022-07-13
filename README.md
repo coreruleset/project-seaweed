@@ -1,30 +1,19 @@
 # Project Seaweed
 
-## GSoC meet #5 Summary
+## GSoC meet #6 Summary
 
-Reviewed the progress regarding creating Crs-modsec docker setup and launching exploits using nuclei docker containers. @felipe is going try and setup the project on his system and later open issues on [Project github repo](https://github.com/vandanrohatgi/Project-Seaweed) regarding any changes / improvements. 
+Reviewed the progress. Decided to clone the entire nuclei-templates github repo to use for processing instead of writing code for querying / downloading files. For false negative classification, along with 403 response, we count the number of request sent and count the number of 403 received, then classify attacks as blocked, not blocked and partial block. To find unique attack types we choose top 20 common occuring attacks from nuclei tags and create a list containing just the attack tags (xss,sqli,lfi...). Adapt a unit test based approach instead of calling classes and functions separately to see if they work and stop working like a mess that I am.
 
 Tasks for the week
 
-1. Continue setting up Python project following [https://medium.com/@cjolowicz/hypermodern-python-d44485d9d769]:
-- Documentation
-- CI/CD
-2. Continue working on:
-- Provide a CLI parameter to define type of cve to lunch (XSS, SQLi etc.)
-- Create project setup README.md
-- identify false negatives
+1. Improve project setup README.
+2. Improve classification algorithm.
+3. Create list of unique attacks for runnning PoCs.
+4. stop procrastinating on writing tests.
 
-extra Tasks:
-
-- Classify false negatives according to severity and type of attack
-- generate report
 
 Progress:
-- Added docstring Documentation to functions and classes.
-- Found unique attack types from tags in nuclei templates
-- Added installation README
-- Added code for false-negative classification
-- Added code for report generation
+
 
 Notes:
 
@@ -32,9 +21,7 @@ To find unique tags in nuclei templates:
 
 `grep "tags" -r . | cut -d":" -f3 | sed 's/,/\n/g' | sed 's/ //g' | sort | uniq -c | sort -n`
 
-Right now all nuclei components were inside the nuclei container. But to use tags and CVE metadata we will need to query the nuclei template repository. Should we just make a local copy of it or make requests to github nuclei-template repository?
-
-To classify false negatives, we consider any response code other than 403 as a bypass. The config on crs-modsec docker container shows that by default all phases return 403 upon attack detection.
+Nuclei identifies HTTP based CVEs using the `requests` keyword in the templates.
 
 
 ## Installation

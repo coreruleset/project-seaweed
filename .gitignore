@@ -167,3 +167,5 @@ cython_debug/
 docs/
 results/
 fetch_github.py
+*.csv
+*.json

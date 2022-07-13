@@ -43,15 +43,13 @@ def main(level: str) -> None:
     "waf_url",
     required=False,
     help="URL for alternate WAF test (https://cloudflaredomain.com)",
-    show_default=True,
-    default="crs",
+    show_default=True
 )
 @click.option(
     "--out",
     "directory",
     required=False,
-    help="Specify directory to store output",
-    default="temp",
+    help="Specify directory to store output"
 )
 @click.command()
 def tester(cve_id: str, directory: str, waf_url: str) -> None:
@@ -70,8 +68,7 @@ def tester(cve_id: str, directory: str, waf_url: str) -> None:
 @click.command()
 @click.option("-u", "--url", required=True, help="URL where the PoC is hosted")
 def extract_payload(url: str) -> None:
-    """
-    extracts the exploit PoC from the given webpage URL.
+    """Extracts the exploit PoC from the given webpage URL.
 
     Args:
         url: url of the webpage to parse
