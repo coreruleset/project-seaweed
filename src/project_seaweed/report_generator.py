@@ -13,10 +13,9 @@ class cve_details():
         severity: severity of the CVe in question
         attack_type: type of attack launched by CVE
     """
-    def __init__(self,cve:str,severity:str=None,attack_type:str=None) -> None:
+    def __init__(self,cve:str,**kwargs) -> None:
         self.cve=cve
-        self.severity=severity
-        self.attack_type=attack_type
+        self.kwargs=kwargs
     
     def output(self) -> OrderedDict:
         """Generate a dictionary from CVE details
@@ -26,17 +25,16 @@ class cve_details():
         """
         custom_dict= OrderedDict()
         custom_dict["cve"]=self.cve
-        custom_dict["severity"]=self.severity
-        custom_dict["attack_type"]=self.attack_type
+        custom_dict.update(self.kwargs)
         return custom_dict
 
     def keys(self) -> None:
         """To return all the keys present in cve_details object
         
         Returns:
-            list: returns a list of 
+            list: returns a list of attributes of the cve_details object
         """
-        return self.output().keys()
+        return list(self.output().keys())
 
 class Report():
     """Handle report generation functions
@@ -72,13 +70,4 @@ class Report():
                 writer=csv.writer(f)
                 writer.writerow([field for field in self.data[0].keys()]) # write field names at the top of csv using first element
                 for row in self.data:
-                    writer.writerow([row.output().get(value) for value in row.keys()]) # fill the following rows with values
-
-
-dataobj=cve_details("cve-2022-2123","critical","xss")
-dataobj2=cve_details("cve-2021-6767","high","SQLi")
-report=Report("csv")
-report.add_data(dataobj)
-report.add_data(dataobj2)
-#report.add_data({"name":"john","middleName":"baba yaga","lastname":"wick"})
-report.gen_file()
+                    writer.writerow([row.output().get(value,None) for value in row.keys()]) # fill the following rows with values
