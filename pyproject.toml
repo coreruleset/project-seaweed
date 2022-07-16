@@ -30,6 +30,7 @@ flake8-docstrings = "^1.6.0"
 darglint = "^1.8.1"
 xdoctest = "^1.0.0"
 typeguard = "^2.13.3"
+PyYAML = "^6.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -44,6 +45,7 @@ source=["src/","*/site_packages"]
 [tool.coverage.run]
 branch= true
 source = ["project_seaweed"]
+omit = ["src/project_seaweed/extract_payload.py"]
 
 [tool.coverage.report]
 show_missing = true
