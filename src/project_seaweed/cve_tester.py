@@ -1,15 +1,14 @@
 """Launch Nuclei exploits against WAFs"""
 
 import sys
-import click
 import docker
 import tempfile
 import traceback
 import re
 import os
 import logging
-import requests
-from .util import is_reachable
+from .util import is_reachable,printer
+
 
 class Cve_tester:
     """Tester class
@@ -34,7 +33,7 @@ class Cve_tester:
         temp_dir: name of the temporary directory where results from nuclei are stored
     """
 
-    def __init__(self, cve_id: list, directory: str, waf_url: str = "crs") -> None:
+    def __init__(self, cve_id: list=[], directory: str=None, waf_url: str = "crs") -> None:
         """
         Initializes attirbutes conditionally.
         If the user provides a waf url, modsec-crs setup is not created. Creates all resources otherwise.
@@ -45,7 +44,7 @@ class Cve_tester:
             waf_url: define a waf url to test. Uses modsec-crs by default.
             directory: directory to store program output
         """
-        if waf_url is None:
+        if waf_url == "crs":
             logging.info("Initializing modsec-crs setup")
             self.waf_image = "owasp/modsecurity-crs:apache"
             self.web_server_image = "httpd"
@@ -57,7 +56,7 @@ class Cve_tester:
         elif is_reachable(waf_url):
             logging.info(f"using {waf_url} as target")
             self.waf_url = waf_url
-        
+
         if directory is None:
             self.temp_dir = tempfile.mkdtemp()
             logging.info(f"Storing results in {self.temp_dir}")
@@ -70,26 +69,13 @@ class Cve_tester:
         self.nuclei_image = "projectdiscovery/nuclei:latest"
         self.client = docker.client.from_env()
 
-    def printer(self, msg: str, add: bool = True) -> None:
-        """
-        Display pretty cli messages
-
-        Args:
-            msg: message to print
-            add: decide the colour of message based on this value
-        """
-        if add:
-            click.secho(f"[+] {msg}", fg="green")
-        else:
-            click.secho(f"[-] {msg}", fg="red")
-
     def create_crs(self) -> None:
         """
         Create apache and modsec-crs containers. Attach them to docker network.
         """
-        self.printer("Creating docker network...")
+        printer("Creating docker network...")
         self.network = self.client.networks.create(self.network_name, driver="bridge")
-        self.printer("Creating apache server container...")
+        printer("Creating apache server container...")
         self.web_server_obj = self.client.containers.run(
             self.web_server_image,
             name=self.web_server_name,
@@ -98,7 +84,7 @@ class Cve_tester:
             remove=True,
             hostname=self.web_server_name,
         )
-        self.printer("Creating crs-modsec container...")
+        printer("Creating crs-modsec container...")
         self.waf_obj = self.client.containers.run(
             self.waf_image,
             name=self.waf_name,
@@ -121,11 +107,11 @@ class Cve_tester:
             if self.cve_id=["CVE-2022-1234","CVE-2021-4567"]
             '-t /root/nuclei-templates/cves/2022/CVE-2022-1234.yaml,/root/nuclei-templates/cves/2021/CVE-2021-4567.yaml'
 
-            if self.cve_id=[""]
+            if self.cve_id=[]
             '-t cves -pt http'
         """
 
-        if self.cve_id != [""]:
+        if self.cve_id != []:
             path = "/root/nuclei-templates/cves/{}/{}.yaml"
             cves = []
             for cve in self.cve_id:
@@ -147,7 +133,7 @@ class Cve_tester:
         """
         Creates a docker container to run nuclei against waf using output from get_cves(). Saves nuclei output in temp_dir.
         """
-        self.printer("Creating nuclei container...")
+        printer("Creating nuclei container...")
         self.client.containers.run(
             self.nuclei_image,
             remove=True,
@@ -162,7 +148,7 @@ class Cve_tester:
         Launches an alpine container to change the permissions on the temp_dir directory.
         Previous nuclei container changed the permissions (root only) of temp_dir when it wrote it's output.
         """
-        self.printer("Adding permissions to output folder...")
+        printer("Adding permissions to output folder...")
         self.client.containers.run(
             "alpine",
             remove=True,
@@ -182,7 +168,7 @@ class Cve_tester:
         Temporary function for Proof of concept.
         """
         try:
-            self.printer(f"Results stored in {self.temp_dir}")
+            printer(f"Results stored in {self.temp_dir}")
             if hasattr(self, "waf_name"):
                 self.create_crs()
             self.create_nuclei()
@@ -198,7 +184,7 @@ class Cve_tester:
         Destructor responsible for cleanup after objects go out of reference.
         Stops the apache and crs containers, which have auto remove enabled. Deletes the docker network.
         """
-        self.printer("Cleaning up...", add=False)
+        printer("Cleaning up...", add=False)
         try:
             self.web_server_obj.stop()
         except AttributeError:
