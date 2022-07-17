@@ -7,7 +7,7 @@ import traceback
 import re
 import os
 import logging
-from .util import is_reachable,printer
+from .util import is_reachable, printer
 
 
 class Cve_tester:
@@ -33,9 +33,11 @@ class Cve_tester:
         temp_dir: name of the temporary directory where results from nuclei are stored
     """
 
-    def __init__(self, cve_id: list=[], directory: str=None, waf_url: str = "crs") -> None:
+    def __init__(
+        self, cve_id: list = None, directory: str = None, waf_url: str = "crs"
+    ) -> None:
         """
-        Initializes attirbutes conditionally.
+        Initializes attributes conditionally.
         If the user provides a waf url, modsec-crs setup is not created. Creates all resources otherwise.
         The availability of waf_url is tested by making a HEAD request.
 
@@ -50,12 +52,14 @@ class Cve_tester:
             self.web_server_image = "httpd"
             self.waf_name = "crs-waf"
             self.web_server_name = "httpd-server"
-            self.waf_url = f"http://{self.waf_name}"
-            self.waf_env = ["PARANOIA=4", f"BACKEND=http://{self.web_server_name}"]
+            self.waf_url = "http://" + self.waf_name
+            self.waf_env = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
             self.network_name = "seaweed-network"
         elif is_reachable(waf_url):
             logging.info(f"using {waf_url} as target")
             self.waf_url = waf_url
+        else:
+            sys.exit("URL is not reachable. Exiting program...")
 
         if directory is None:
             self.temp_dir = tempfile.mkdtemp()
@@ -65,7 +69,7 @@ class Cve_tester:
                 self.temp_dir = os.path.abspath(directory)
             else:
                 sys.exit("Specified directory does not exist. Exiting...")
-        self.cve_id = cve_id
+        self.cve_id = cve_id or []
         self.nuclei_image = "projectdiscovery/nuclei:latest"
         self.client = docker.client.from_env()
 
@@ -104,11 +108,13 @@ class Cve_tester:
             str: CLI parameters specifying CVE(s) to run.
 
         Example:
-            if self.cve_id=["CVE-2022-1234","CVE-2021-4567"]
-            '-t /root/nuclei-templates/cves/2022/CVE-2022-1234.yaml,/root/nuclei-templates/cves/2021/CVE-2021-4567.yaml'
-
-            if self.cve_id=[]
-            '-t cves -pt http'
+        >>> from project_seaweed.cve_tester import Cve_tester
+        >>> test_obj=Cve_tester(cve_id=["CVE-2022-1234","CVE-2021-4567"])
+        >>> test_obj.get_cves()
+        '-t /root/nuclei-templates/cves/2022/CVE-2022-1234.yaml,/root/nuclei-templates/cves/2021/CVE-2021-4567.yaml'
+        >>> test_obj=Cve_tester()
+        >>> test_obj.get_cves()
+        '-t cves -pt http'
         """
 
         if self.cve_id != []:
@@ -124,10 +130,11 @@ class Cve_tester:
                         f"{cve} does not match pattern 'CVE-\\d{{4}}-\\d{{1,10}}'. Skippping..."
                     )
                     continue
-            return f"-t {','.join(cves)}"
+            nuclei_arg = f"-t {','.join(cves)}"
         else:
             logging.info("Testing all available CVEs...")
-            return "-t cves -pt http"
+            nuclei_arg = "-t cves -pt http"
+        return nuclei_arg
 
     def create_nuclei(self) -> None:
         """
@@ -163,7 +170,7 @@ class Cve_tester:
             command=f"sh -c 'chmod -R 777 {self.temp_dir}'",
         )
 
-    def generate_raw(self) -> None:
+    def generate_raw(self) -> str:
         """
         Temporary function for Proof of concept.
         """

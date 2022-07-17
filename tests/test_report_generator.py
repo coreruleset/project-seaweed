@@ -3,14 +3,13 @@ tests for the report generation
 """
 
 import os
-from types import GeneratorType
+from typing import Generator
 import pytest
 from project_seaweed.report_generator import cve_details, Report
 from collections import OrderedDict
-from tempfile import mkdtemp
 
 
-def cve_data(amount: int = 1) -> GeneratorType:
+def cve_data(amount: int = 1) -> Generator:
     for i in range(amount):
         yield cve_details(cve=f"CVE-2005-{i}", severity="critical", type="XSS")
 

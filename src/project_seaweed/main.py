@@ -1,11 +1,7 @@
 """Entrypoint program & CLI interface"""
 
-import os
-from pydoc import cli
-from unittest import case
 from . import __version__
 import click
-from .extract_payload import extract
 from .classify import Classifier
 from .cve_tester import Cve_tester
 import logging
@@ -83,21 +79,14 @@ def tester(
         cve_id: comma separated values for cve(s) to test.
         waf_url: specify a waf other than modsec-crs
         directory: specify directory to store program output
+        full_report: Boolean flag to include all tested CVE data in the report. Report only includes Unblocked / Partially blocked CVE data.
+        out_file: name for the report file
     """
     test = Cve_tester(cve_id=cve_id.split(","), directory=directory, waf_url=waf_url)
     result_directory = test.generate_raw()
-    classify = Classifier(result_directory)
+    classify = Classifier(
+        dir=result_directory, format=format, out_file=out_file, full_report=full_report
+    )
 
-
-"""@click.command()
-@click.option("-u", "--url", required=True, help="URL where the PoC is hosted")
-def extract_payload(url: str) -> None:
-    #Extracts the exploit PoC from the given webpage URL.
-
-    Args:
-        url: url of the webpage to parse
-    #
-    extract(url=url)"""
 
 main.add_command(tester)
-# main.add_command(extract_payload)

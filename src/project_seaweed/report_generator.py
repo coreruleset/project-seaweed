@@ -4,6 +4,7 @@ import os
 import json
 import csv
 from collections import OrderedDict
+from typing import Dict, List
 
 
 class cve_details:
@@ -15,7 +16,7 @@ class cve_details:
         attack_type: type of attack launched by CVE
     """
 
-    def __init__(self, cve: str, **kwargs) -> None:
+    def __init__(self, cve: str, **kwargs: Dict[str, str]) -> None:
         self.cve = cve
         self.kwargs = kwargs
 
@@ -30,7 +31,7 @@ class cve_details:
         custom_dict.update(self.kwargs)
         return custom_dict
 
-    def keys(self) -> None:
+    def keys(self) -> list:
         """To return all the keys present in cve_details object
 
         Returns:
@@ -53,7 +54,7 @@ class Report:
             self.out_file = f"{os.getcwd()}/report.{format}"
         else:
             self.out_file = out_file
-        self.data = []
+        self.data: List[cve_details] = []
 
     def add_data(self, data: cve_details) -> None:
         """Add cve_details object to a list"""

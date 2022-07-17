@@ -51,4 +51,4 @@ def extract(url: str) -> str:
         return PoC
     else:
         print("Unable to find payload in the given URL")
-        return None
+        return ""

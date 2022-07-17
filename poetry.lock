@@ -504,7 +504,7 @@ python-versions = "*"
 name = "pyyaml"
 version = "6.0"
 description = "YAML parser and emitter for Python"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -685,7 +685,7 @@ tests = ["cmake", "codecov", "ninja", "pybind11", "pytest-cov", "pytest-cov", "p
 [metadata]
 lock-version = "1.1"
 python-versions = "3.9.13"
-content-hash = "15055dfea0ff6cd36dfcd819899b3aa0804fdb2097bb1a108ed8a94697e7b554"
+content-hash = "1f580fdbd069d31061ea4b219d8ee7423af49f3471ee23f1d364d49613165656"
 
 [metadata.files]
 atomicwrites = [
