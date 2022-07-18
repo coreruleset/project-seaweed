@@ -169,3 +169,4 @@ results/
 fetch_github.py
 *.csv
 *.json
+nuclei-templates/

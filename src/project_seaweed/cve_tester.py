@@ -34,7 +34,7 @@ class Cve_tester:
     """
 
     def __init__(
-        self, cve_id: list = None, directory: str = None, waf_url: str = "crs"
+        self, cve_id: list = None, directory: str = None, waf_url: str = None
     ) -> None:
         """
         Initializes attributes conditionally.
@@ -46,7 +46,7 @@ class Cve_tester:
             waf_url: define a waf url to test. Uses modsec-crs by default.
             directory: directory to store program output
         """
-        if waf_url == "crs":
+        if waf_url is None:
             logging.info("Initializing modsec-crs setup")
             self.waf_image = "owasp/modsecurity-crs:apache"
             self.web_server_image = "httpd"

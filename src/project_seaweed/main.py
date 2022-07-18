@@ -42,7 +42,6 @@ def main(level: str) -> None:
     "waf_url",
     required=False,
     help="URL for alternate WAF test (https://cloudflaredomain.com)",
-    show_default=True,
 )
 @click.option(
     "--out-dir",
@@ -53,7 +52,7 @@ def main(level: str) -> None:
 @click.option(
     "--full-report",
     "full_report",
-    default=False,
+    is_flag=True,
     help="Includes blocked attack's info in the report (bigger report)",
 )
 @click.option(
@@ -65,11 +64,16 @@ def main(level: str) -> None:
     help="format for report",
 )
 @click.option(
-    "--out-file", "out_file", required=False, help="location to save the file"
+    "--out-file", "out_file", required=False, help="location to save the report"
 )
 @click.command()
 def tester(
-    cve_id: str, directory: str, waf_url: str, full_report: bool, out_file: str
+    cve_id: str,
+    directory: str,
+    waf_url: str,
+    full_report: bool,
+    out_file: str,
+    format: str,
 ) -> None:
     """Trigger CVE testing process
     \f
@@ -87,6 +91,7 @@ def tester(
     classify = Classifier(
         dir=result_directory, format=format, out_file=out_file, full_report=full_report
     )
+    classify.reader()
 
 
 main.add_command(tester)

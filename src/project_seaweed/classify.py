@@ -1,6 +1,7 @@
 """Identify false negatives in nuclei's report"""
 import re
 import os
+from typing import Union
 from .report_generator import Report, cve_details
 from .util import parse_template
 
@@ -11,6 +12,10 @@ class Classifier:
 
     Args:
         dir: path to directory where nuclei responses are stored.
+        format: foramt for the report (json | csv)
+        out_file: file path for the report
+        full_report: Include all tested CVE details. Includes CVEs that were blocked. Report only reflects
+                     unblocked or partially blocked CVEs by default.
     """
 
     def __init__(
@@ -26,40 +31,29 @@ class Classifier:
         self.cve_file_regex = re.compile(r"(CVE_\d{4}_\d{1,})")
         self.report = Report(format=format, out_file=out_file)
 
-    """def is_false_negative(self, data: str) -> bool:
-        #Classifies false negatives
-
-        Args:
-            data: data in string format, consisting of requests & response data
-
-        Returns:
-            bool: True if attack was a false-negative, False otherwise.
-        #
-        matches = re.search(self.regex, data)
-        if matches is not None:
-            return True
-        else:
-            return False"""
-
-    def find_block_type(self, data: str) -> str:
+    def find_block_type(self, data: str) -> Union[bool, int]:
         """find if an attack was blocked, not blocked or partially blocked
 
         Args:
             data: data in string format, consisting of requests & responses
 
         Returns:
-            str: Block status (Blocked | Not Blocked | Partial Block) (blocked requests / total requests)
+            bool: Block status (True | False)
+            int: percentage of the attack blocked
         """
         total_requests = len(re.findall(self.request_regex, data))
         blocked_requests = len(re.findall(self.forbidden_regex, data))
         if total_requests == blocked_requests:
-            output = f"Blocked ({total_requests})"
+            output = True
+            block_percent = 100
         elif blocked_requests == 0:
-            output = f"Not Blocked ({total_requests})"
+            output = False
+            block_percent = 0
         else:
-            output = f"Partial Block ({blocked_requests}/{total_requests})"
+            block_percent = (blocked_requests / total_requests) * 100
+            output = False
 
-        return output
+        return output, block_percent
 
     def reader(self) -> None:
         """
@@ -75,8 +69,15 @@ class Classifier:
                 # ignore all weird characters that may be found in an attack. We only need the response codes.
                 data = f.read().decode("utf-8", errors="ignore")
             cve = re.search(self.cve_regex, data).group(0)
-            block_type = self.find_block_type(data=data)
+            block_status, percent = self.find_block_type(data=data)
+            if block_status is True and self.full_report is False:
+                continue
             self.report.add_data(
-                cve_details(cve=cve, block_type=block_type, **parse_template(cve))
+                cve_details(
+                    cve=cve,
+                    blocked=block_status,
+                    block_percentage=percent,
+                    **parse_template(cve),
+                )
             )
         self.report.gen_file()
