@@ -1,23 +1,19 @@
 # Project Seaweed
 
-## GSoC meet #6 Summary
+## GSoC meet #7 Summary
 
-Reviewed the progress. Decided to clone the entire nuclei-templates github repo to use for processing instead of writing code for querying / downloading files. For false negative classification, along with 403 response, we count the number of request sent and count the number of 403 received, then classify attacks as blocked, not blocked and partial block. To find unique attack types we choose top 20 common occuring attacks from nuclei tags and create a list containing just the attack tags (xss,sqli,lfi...). Adapt a unit test based approach instead of calling classes and functions separately to see if they work and stop working like a mess that I am.
+Reviewed the progress (It went great). Right now the report shows a boolean if attack was blocked and % of attack blocked if partial block. To improve readability, we come up with better ways to represent information (Blocked | Not Blocked | Partial Block). To better understand the project reports, Export them as csv and create google sheets for various attack types. This will give us an initial overview of CRS and attack type relationships.
 
 Tasks for the week
 
-1. Improve project setup README.
-2. Improve classification algorithm.
-3. Create list of unique attacks for runnning PoCs.
-4. stop procrastinating on writing tests.
+1. Write integration tests for main
+2. Improve block indicators in report
+3. implement attack types in the project
+4. Create a google sheet from the report of various attacks
+
 
 
 Progress:
-
-1. Added tests for report generator
-2. Improved classifer logic
-3. Improved Installation guide and CLI help
-4. Extracted attack tags from nuclei
 
 Notes:
 
