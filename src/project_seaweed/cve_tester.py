@@ -183,7 +183,6 @@ class Cve_tester:
         except Exception:
             print(traceback.format_exc())
             sys.exit(1)
-        # print([x for x in os.walk(self.temp_dir)])
         return self.temp_dir
 
     def __del__(self) -> None:

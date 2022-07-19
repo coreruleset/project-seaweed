@@ -44,8 +44,8 @@ def parse_template(cve: str) -> Dict:
     return {
         "name": data.get("name", "None"),
         "severity": data.get("severity", "None"),
-        "cvss-score": data.get("cvss-score", "None"),
-        "cwe-id": data.get("cwe-id", "None"),
+        "cvss-score": data.get("classification").get("cvss-score", "None"),
+        "cwe-id": data.get.get("classification").get("cwe-id", "None"),
         "tags": data.get("tags", "None"),
     }
 

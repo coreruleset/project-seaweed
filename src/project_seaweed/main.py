@@ -34,8 +34,7 @@ def main(level: str) -> None:
     "--cve-id",
     "cve_id",
     required=False,
-    help="CVE IDs (CVE-2022-1211, CVE-2022-1609 ...), Runs all CVEs by default",
-    default="",
+    help="CVE IDs (CVE-2022-1211, CVE-2022-1609 ...), Runs all CVEs by default"
 )
 @click.option(
     "--waf-url",
@@ -86,7 +85,9 @@ def tester(
         full_report: Boolean flag to include all tested CVE data in the report. Report only includes Unblocked / Partially blocked CVE data.
         out_file: name for the report file
     """
-    test = Cve_tester(cve_id=cve_id.split(","), directory=directory, waf_url=waf_url)
+    if cve_id is not None:
+        cve_id=cve_id.split(",")
+    test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url)
     result_directory = test.generate_raw()
     classify = Classifier(
         dir=result_directory, format=format, out_file=out_file, full_report=full_report
