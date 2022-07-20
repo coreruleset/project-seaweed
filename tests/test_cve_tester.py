@@ -17,7 +17,7 @@ def cve_object() -> Cve_tester:
         Cve_tester: Cve_tester object with cves
     """
     return Cve_tester(
-        cve_id=["CVE-2020-35729", "CVE-2022-0595", "cve-2077-1234", "c-not-valid-ve"]
+        cve_id='CVE-2020-35729,CVE-2022-0595,cve-2077-1234,c-not-valid-ve'
     )
 
 

@@ -42,19 +42,16 @@ def test_find_block_type(mock_nuclei_results: pytest.fixture):
     test_obj = Classifier(
         dir=mock_nuclei_results, format="json", out_file="report.json", full_report=True
     )
-    status, percent = test_obj.find_block_type("HTTP/1.1 200 OK\nHTTP/1.1 200 OK\n")
-    assert status == True
-    assert percent == 100
-    status, percent = test_obj.find_block_type(
+    status = test_obj.find_block_type("HTTP/1.1 200 OK\nHTTP/1.1 200 OK\n")
+    assert status == "Not Blocked"
+    status = test_obj.find_block_type(
         "HTTP/1.1 403 Forbidden\nHTTP/1.1 403 Forbidden\n"
     )
-    assert status == False
-    assert percent == 0
-    status, percent = test_obj.find_block_type(
+    assert status == "Blocked"
+    status = test_obj.find_block_type(
         "HTTP/1.1 200 OK\nHTTP/1.1 403 Forbidden\n"
     )
-    assert status == False
-    assert percent == 50
+    assert status == "Partial block (50.0%)"
 
 
 def test_reader(mock_nuclei_results: pytest.fixture):
@@ -67,8 +64,7 @@ def test_reader(mock_nuclei_results: pytest.fixture):
         data = json.load(f)
     assert len(data) == 2
     for i in data:
-        assert i["blocked"] is False
-        assert i["block_percentage"]<100
+        assert i["blocked"] != "Blocked"
 
 
 def test_reader_full(mock_nuclei_results: pytest.fixture):

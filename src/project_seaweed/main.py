@@ -65,6 +65,7 @@ def main(level: str) -> None:
 @click.option(
     "--out-file", "out_file", required=False, help="location to save the report"
 )
+@click.option("--tag",required=False,type=click.Choice(['lfi', 'xss', 'fileupload', 'xxe', 'injection', 'traversal', 'disclosure', 'auth-bypass', 'ssrf', 'sqli', 'oast', 'rce']))
 @click.command()
 def tester(
     cve_id: str,
@@ -73,6 +74,7 @@ def tester(
     full_report: bool,
     out_file: str,
     format: str,
+    tag: str
 ) -> None:
     """Trigger CVE testing process
     \f
@@ -87,7 +89,7 @@ def tester(
     """
     if cve_id is not None:
         cve_id=cve_id.split(",")
-    test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url)
+    test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url,tag=tag)
     result_directory = test.generate_raw()
     classify = Classifier(
         dir=result_directory, format=format, out_file=out_file, full_report=full_report

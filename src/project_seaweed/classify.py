@@ -24,7 +24,7 @@ class Classifier:
         self.dir = f"{dir}/http/"
         self.full_report = full_report
         self.forbidden_regex = re.compile(
-            r"HTTP\/1\.1\s(?!403)\d{3}"
+            r"HTTP\/1\.1\s403"
         )  # regex for 403 Forbidden responses
         self.request_regex = re.compile(r"HTTP\/1\.1\s\d{3}")
         self.cve_regex = re.compile(r"(CVE-\d{4}-\d{1,})")
@@ -49,7 +49,6 @@ class Classifier:
         else:
             block_percent:float = (blocked_requests / total_requests) * 100
             output:str = f"Partial block ({block_percent}%)"
-
         return output
 
     def reader(self) -> None:

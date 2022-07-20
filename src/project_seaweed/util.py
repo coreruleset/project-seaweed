@@ -45,7 +45,7 @@ def parse_template(cve: str) -> Dict:
         "name": data.get("name", "None"),
         "severity": data.get("severity", "None"),
         "cvss-score": data.get("classification").get("cvss-score", "None"),
-        "cwe-id": data.get.get("classification").get("cwe-id", "None"),
+        "cwe-id": data.get("classification").get("cwe-id", "None"),
         "tags": data.get("tags", "None"),
     }
 
@@ -62,3 +62,10 @@ def printer(msg: str, add: bool = True) -> None:
         click.secho(f"[+] {msg}", fg="green")
     else:
         click.secho(f"[-] {msg}", fg="red")
+
+def cve_payload_gen(cve:str)->str:
+    try:
+        to_return= f"cves/{cve.split('-')[1]}/{cve.upper()}.yaml"
+    except IndexError:
+        to_return=None
+    return to_return
