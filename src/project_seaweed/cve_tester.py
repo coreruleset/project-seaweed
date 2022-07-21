@@ -43,12 +43,13 @@ class Cve_tester:
         """
         if waf_url is None:
             logging.info("Initializing modsec-crs setup")
-            self.waf_image = os.environ.get("waf_image",default="owasp/modsecurity-crs:apache")
-            self.web_server_image = os.environ.get("web_server_image",default="httpd")
-            self.waf_name = os.environ.get("waf_name",default="crs-waf")
-            self.web_server_name = os.environ.get("web_server_name",default="httpd-server")
-            self.network_name = os.environ.get("network_name",default="seaweed-network")
-            self.nuclei_image = os.environ.get("nuclei_image",default="projectdiscovery/nuclei:latest")
+            self.waf_image = os.environ.get("WAF_IMAGE",default="owasp/modsecurity-crs:apache")
+            self.web_server_image = os.environ.get("WEB_SERVER_IMAGE",default="httpd:latest")
+            self.waf_name = os.environ.get("WAF_NAME",default="crs-waf")
+            self.web_server_name = os.environ.get("WEB_SERVER_NAME",default="httpd-server")
+            self.network_name = os.environ.get("NETWORK_NAME",default="seaweed-network")
+            self.nuclei_image = os.environ.get("NUCLEI_IMAGE",default="projectdiscovery/nuclei:latest")
+            self.nuclei_threads=os.environ.get("NUCLEI_THREADS",default=50) # set rate-limiting to 50 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
             self.waf_url = "http://" + self.waf_name
             self.waf_env = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
 
@@ -59,14 +60,6 @@ class Cve_tester:
             sys.exit("URL is not reachable. Exiting program...")
 
         self.temp_dir=directory or tempfile.mkdtemp()
-        """if directory is None:
-            self.temp_dir = tempfile.mkdtemp()
-            logging.info(f"Storing results in {self.temp_dir}")
-        else:
-            if os.path.isdir(directory):
-                self.temp_dir = os.path.abspath(directory)
-            else:
-                sys.exit("Specified directory does not exist. Exiting...")"""
         self.cve_id = cve_id or []
         self.client = docker.client.from_env()
         self.tag="-tags "+tag if tag is not None else ""
@@ -116,19 +109,7 @@ class Cve_tester:
         """
 
         if self.cve_id != []:
-            """
-            path = "/root/nuclei-templates/cves/{}/{}.yaml"
-            cves = []
-            for cve in self.cve_id:
-                cve = cve.upper()
-                if re.match(r"CVE-\d{4}-\d{1,10}", cve):
-                    year = cve.split("-")[1]
-                    cves.append(path.format(year, cve))
-                else:
-                    logging.info(
-                        f"{cve} does not match pattern 'CVE-\\d{{4}}-\\d{{1,10}}'. Skippping..."
-                    )
-                    continue"""
+
             cves=self.cve_id.split(",")
             templates=list(map(cve_payload_gen,cves))
             templates=[temp for temp in templates if temp is not None]
@@ -143,13 +124,15 @@ class Cve_tester:
         Creates a docker container to run nuclei against waf using output from get_cves(). Saves nuclei output in temp_dir.
         """
         printer("Creating nuclei container...")
-        self.client.containers.run(
+        # nuclei -u http://crs-waf -rl 50 -t cves -pt http -srd /tmp/tmp_1234
+        entry_cmd=f"nuclei -u {self.waf_url} -rl {self.nuclei_threads} {self.get_cves()} {self.tag} -srd {self.temp_dir}"
+        self.nuclei_obj=self.client.containers.run(
             self.nuclei_image,
             remove=True,
             detach=False,
             network=self.network_name or "",
             volumes={self.temp_dir: {"bind": self.temp_dir, "mode": "rw"}},
-            entrypoint=f"nuclei -u {self.waf_url} {self.get_cves()} {self.tag} -srd {self.temp_dir}",  # nuclei -u http://crs-waf -t cves -pt http -srd /tmp/tmp_1234
+            entrypoint=entry_cmd
         )
 
     def change_permission(self) -> None:
@@ -193,6 +176,10 @@ class Cve_tester:
         Stops the apache and crs containers, which have auto remove enabled. Deletes the docker network.
         """
         printer("Cleaning up...", add=False)
+        try:
+            self.nuclei_obj.stop()
+        except AttributeError:
+            pass
         try:
             self.web_server_obj.stop()
         except AttributeError:
