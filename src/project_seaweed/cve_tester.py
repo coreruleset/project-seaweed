@@ -6,7 +6,7 @@ import tempfile
 import traceback
 import os
 import logging
-from .util import is_reachable, printer,cve_payload_gen
+from .util import is_reachable, printer, cve_payload_gen
 
 
 class Cve_tester:
@@ -14,42 +14,56 @@ class Cve_tester:
 
     Sets up apache server, modsecurity Waf running rules from Core rule set, nuclei container
     and stores attack requests and waf responses inside a temporary directory.
+
+    Initializes attributes conditionally. If the user provides a waf url, modsec-crs setup is not created. Creates all resources otherwise.
+    The availability of waf_url is tested by making a HEAD request.
+
+    Args:
+        cve_id: list of cves to test. Tests all by default
+        waf_url: define a waf url to test. Uses modsec-crs by default.
+        directory: directory to store program output
+        tag: Specify attack templates using tags.
+    Attributes:
+        waf_image: defines the owasp crs image to use as a reverse proxy
+        web_server_image: defines the image to use for web server behind the reverse proxy
+        waf_name: hostname & domain name of the thus setup waf, usefull for providing a target
+        url for nuclei.
+        web_server_name: hostname & domain name for apache server, used to set the "BACKEND" for waf reverse proxy.
+        waf_url: launch exploits with this url as the target
+        waf_env: Environment variables to confgure crs waf.
+        network_name: name for docker network
+        client: docker client to manage docker resources
+        temp_dir: name of the temporary directory where results from nuclei are stored
     """
 
     def __init__(
-        self, cve_id: list = None, directory: str = None, waf_url: str = None,tag:str=None
+        self,
+        cve_id: list = None,
+        directory: str = None,
+        waf_url: str = None,
+        tag: str = None,
     ) -> None:
-        """
-        Initializes attributes conditionally.
-        If the user provides a waf url, modsec-crs setup is not created. Creates all resources otherwise.
-        The availability of waf_url is tested by making a HEAD request.
-
-        Args:
-            cve_id: list of cves to test. Tests all by default
-            waf_url: define a waf url to test. Uses modsec-crs by default.
-            directory: directory to store program output
-            tag: Specify attack templates using tags.
-        Attributes:
-            waf_image: defines the owasp crs image to use as a reverse proxy
-            web_server_image: defines the image to use for web server behind the reverse proxy
-            waf_name: hostname & domain name of the thus setup waf, usefull for providing a target
-            url for nuclei.
-            web_server_name: hostname & domain name for apache server, used to set the "BACKEND" for waf reverse proxy.
-            waf_url: launch exploits with this url as the target
-            waf_env: Environment variables to confgure crs waf.
-            network_name: name for docker network
-            client: docker client to manage docker resources
-            temp_dir: name of the temporary directory where results from nuclei are stored
-        """
         if waf_url is None:
             logging.info("Initializing modsec-crs setup")
-            self.waf_image = os.environ.get("WAF_IMAGE",default="owasp/modsecurity-crs:apache")
-            self.web_server_image = os.environ.get("WEB_SERVER_IMAGE",default="httpd:latest")
-            self.waf_name = os.environ.get("WAF_NAME",default="crs-waf")
-            self.web_server_name = os.environ.get("WEB_SERVER_NAME",default="httpd-server")
-            self.network_name = os.environ.get("NETWORK_NAME",default="seaweed-network")
-            self.nuclei_image = os.environ.get("NUCLEI_IMAGE",default="projectdiscovery/nuclei:latest")
-            self.nuclei_threads=os.environ.get("NUCLEI_THREADS",default=50) # set rate-limiting to 50 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
+            self.waf_image = os.environ.get(
+                "WAF_IMAGE", default="owasp/modsecurity-crs:apache"
+            )
+            self.web_server_image = os.environ.get(
+                "WEB_SERVER_IMAGE", default="httpd:latest"
+            )
+            self.waf_name = os.environ.get("WAF_NAME", default="crs-waf")
+            self.web_server_name = os.environ.get(
+                "WEB_SERVER_NAME", default="httpd-server"
+            )
+            self.network_name = os.environ.get(
+                "NETWORK_NAME", default="seaweed-network"
+            )
+            self.nuclei_image = os.environ.get(
+                "NUCLEI_IMAGE", default="projectdiscovery/nuclei:latest"
+            )
+            self.nuclei_threads = os.environ.get(
+                "NUCLEI_THREADS", default=50
+            )  # set rate-limiting to 50 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
             self.waf_url = "http://" + self.waf_name
             self.waf_env = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
 
@@ -59,10 +73,10 @@ class Cve_tester:
         else:
             sys.exit("URL is not reachable. Exiting program...")
 
-        self.temp_dir=directory or tempfile.mkdtemp()
+        self.temp_dir = directory or tempfile.mkdtemp()
         self.cve_id = cve_id or []
         self.client = docker.client.from_env()
-        self.tag="-tags "+tag if tag is not None else ""
+        self.tag = "-tags " + tag if tag is not None else ""
 
     def create_crs(self) -> None:
         """
@@ -110,9 +124,9 @@ class Cve_tester:
 
         if self.cve_id != []:
 
-            cves=self.cve_id.split(",")
-            templates=list(map(cve_payload_gen,cves))
-            templates=[temp for temp in templates if temp is not None]
+            cves = self.cve_id.split(",")
+            templates = list(map(cve_payload_gen, cves))
+            templates = [temp for temp in templates if temp is not None]
             nuclei_arg = f"-t {','.join(templates)}"
         else:
             logging.info("Testing all available CVEs...")
@@ -125,14 +139,14 @@ class Cve_tester:
         """
         printer("Creating nuclei container...")
         # nuclei -u http://crs-waf -rl 50 -t cves -pt http -srd /tmp/tmp_1234
-        entry_cmd=f"nuclei -u {self.waf_url} -rl {self.nuclei_threads} {self.get_cves()} {self.tag} -srd {self.temp_dir}"
-        self.nuclei_obj=self.client.containers.run(
+        entry_cmd = f"nuclei -u {self.waf_url} -rl {self.nuclei_threads} {self.get_cves()} {self.tag} -srd {self.temp_dir}"
+        self.nuclei_obj = self.client.containers.run(
             self.nuclei_image,
             remove=True,
             detach=False,
             network=self.network_name or "",
             volumes={self.temp_dir: {"bind": self.temp_dir, "mode": "rw"}},
-            entrypoint=entry_cmd
+            entrypoint=entry_cmd,
         )
 
     def change_permission(self) -> None:
@@ -157,7 +171,7 @@ class Cve_tester:
 
     def generate_raw(self) -> str:
         """
-        Temporary function for Proof of concept.
+        Stich all the functions together and write the output of testing
         """
         try:
             printer(f"Results stored in {self.temp_dir}")

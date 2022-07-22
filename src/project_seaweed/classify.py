@@ -40,22 +40,22 @@ class Classifier:
         Returns:
             str: returns block status (Blocked | Not Blocked | Partial Block (%))
         """
-        total_requests:int = len(re.findall(self.request_regex, data))
-        blocked_requests:int = len(re.findall(self.forbidden_regex, data))
+        total_requests: int = len(re.findall(self.request_regex, data))
+        blocked_requests: int = len(re.findall(self.forbidden_regex, data))
         if total_requests == blocked_requests:
-            output:str = "Blocked"
+            output: str = "Blocked"
         elif blocked_requests == 0:
-            output:str = "Not Blocked"
+            output: str = "Not Blocked"
         else:
-            block_percent:float = (blocked_requests / total_requests) * 100
-            output:str = f"Partial block ({block_percent}%)"
+            block_percent: float = (blocked_requests / total_requests) * 100
+            output: str = f"Partial block ({block_percent}%)"
         return output
 
     def reader(self) -> None:
         """
         Read contents of the directory, file by file and call false-negative classification on each file
         """
-        files:List = [
+        files: List = [
             file
             for file in os.listdir(self.dir)
             if re.search(self.cve_file_regex, file) is not None
@@ -64,8 +64,8 @@ class Classifier:
             with open(f"{self.dir}{file}", "rb") as f:
                 # ignore all weird characters that may be found in an attack. We only need the response codes.
                 data = f.read().decode("utf-8", errors="ignore")
-            cve:str = re.search(self.cve_regex, data).group(0)
-            block_status:str = self.find_block_type(data=data)
+            cve: str = re.search(self.cve_regex, data).group(0)
+            block_status: str = self.find_block_type(data=data)
             if block_status == "Blocked" and self.full_report is False:
                 continue
             else:

@@ -4,10 +4,11 @@ tests for the PoC extraction function
 
 from click.testing import CliRunner
 import pytest
-# from project_seaweed.main import extract_payload
-from project_seaweed.extract_payload import extract
+from project_seaweed.main import extract_payload
+# from project_seaweed.extract_payload import extract
 from pytest_mock import MockFixture
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+
 
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 @pytest.fixture
@@ -25,6 +26,7 @@ def mock_poc_url(mocker: MockFixture) -> Mock:
     mock.return_value.status_code = 200
     return mock
 
+
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 @pytest.fixture
 def mock_head_request(mocker: MockFixture) -> Mock:
@@ -40,6 +42,7 @@ def mock_head_request(mocker: MockFixture) -> Mock:
     mock.return_value.status_code = 200
     return mock
 
+
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 @pytest.fixture
 def mock_no_poc_url(mocker: MockFixture) -> Mock:
@@ -51,6 +54,7 @@ def mock_no_poc_url(mocker: MockFixture) -> Mock:
     mock.return_value.status_code = 200
     return mock
 
+
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 @pytest.fixture
 def mock_unreachable_url(mocker: MockFixture) -> Mock:
@@ -61,6 +65,7 @@ def mock_unreachable_url(mocker: MockFixture) -> Mock:
     mock.return_value.status_code = 403
     return mock
 
+
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 def test_no_args(runner: CliRunner) -> None:
     """
@@ -68,6 +73,7 @@ def test_no_args(runner: CliRunner) -> None:
     """
     result = runner.invoke(extract_payload)
     assert result.exit_code == 2
+
 
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 def test_unreachable_url(
@@ -82,6 +88,7 @@ def test_unreachable_url(
     result = runner.invoke(extract_payload, ["--url", "validurl.com"])
     assert "URL not reachable!" in result.output
 
+
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 def test_wrong_url(runner: CliRunner) -> None:
     """
@@ -94,6 +101,7 @@ def test_wrong_url(runner: CliRunner) -> None:
     result = runner.invoke(extract_payload, ["--url", "notavalidurl"])
     assert result.exit_code == 1
 
+
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 def test_extraction(
     runner: CliRunner, mock_poc_url: pytest.fixture, mock_head_request: pytest.fixture
@@ -103,6 +111,7 @@ def test_extraction(
     """
     result = runner.invoke(extract_payload, ["--url", "http://validurl.com"])
     assert "test PoC data" in result.output
+
 
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 def test_no_poc(

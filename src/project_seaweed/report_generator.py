@@ -12,8 +12,6 @@ class cve_details:
 
     Args:
         cve: CVE Id
-        severity: severity of the CVe in question
-        attack_type: type of attack launched by CVE
     """
 
     def __init__(self, cve: str, **kwargs: Dict[str, str]) -> None:

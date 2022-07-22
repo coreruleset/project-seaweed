@@ -1,6 +1,6 @@
 """helper functions for the program"""
 
-from typing import Dict
+from typing import Dict, Optional
 import requests
 import yaml
 import click
@@ -44,8 +44,12 @@ def parse_template(cve: str) -> Dict:
     return {
         "name": data.get("name", "None"),
         "severity": data.get("severity", "None"),
-        "cvss-score": data.get("classification").get("cvss-score", "None") if data.get("classification") is not None else "None",
-        "cwe-id": data.get("classification").get("cwe-id", "None") if data.get("classification") is not None else "None",
+        "cvss-score": data.get("classification").get("cvss-score", "None")
+        if data.get("classification") is not None
+        else "None",
+        "cwe-id": data.get("classification").get("cwe-id", "None")
+        if data.get("classification") is not None
+        else "None",
         "tags": data.get("tags", "None"),
     }
 
@@ -63,9 +67,18 @@ def printer(msg: str, add: bool = True) -> None:
     else:
         click.secho(f"[-] {msg}", fg="red")
 
-def cve_payload_gen(cve:str)->str:
+
+def cve_payload_gen(cve: str) -> Optional[str]:
+    """Generate path for requested cve
+
+    Args:
+        cve: cve for which nuclei template needs to be found
+
+    Returns:
+        str: path for nuclei tepmlate of specified cve
+    """
     try:
-        to_return= f"cves/{cve.split('-')[1]}/{cve.upper()}.yaml"
+        to_return = f"cves/{cve.split('-')[1]}/{cve.upper()}.yaml"
     except IndexError:
-        to_return=None
+        to_return = None
     return to_return

@@ -1,9 +1,11 @@
 """Entrypoint program & CLI interface"""
 
+import pytest
 from . import __version__
 import click
 from .classify import Classifier
 from .cve_tester import Cve_tester
+from .extract_payload import extract
 import logging
 
 
@@ -34,7 +36,7 @@ def main(level: str) -> None:
     "--cve-id",
     "cve_id",
     required=False,
-    help="CVE IDs (CVE-2022-1211, CVE-2022-1609 ...), Runs all CVEs by default"
+    help="CVE IDs (CVE-2022-1211, CVE-2022-1609 ...), Runs all CVEs by default",
 )
 @click.option(
     "--waf-url",
@@ -65,7 +67,26 @@ def main(level: str) -> None:
 @click.option(
     "--out-file", "out_file", required=False, help="location to save the report"
 )
-@click.option("--tag",required=False,type=click.Choice(['lfi', 'xss', 'fileupload', 'xxe', 'injection', 'traversal', 'disclosure', 'auth-bypass', 'ssrf', 'sqli', 'oast', 'rce']))
+@click.option(
+    "--tag",
+    required=False,
+    type=click.Choice(
+        [
+            "lfi",
+            "xss",
+            "fileupload",
+            "xxe",
+            "injection",
+            "traversal",
+            "disclosure",
+            "auth-bypass",
+            "ssrf",
+            "sqli",
+            "oast",
+            "rce",
+        ]
+    ),
+)
 @click.command()
 def tester(
     cve_id: str,
@@ -74,7 +95,7 @@ def tester(
     full_report: bool,
     out_file: str,
     format: str,
-    tag: str
+    tag: str,
 ) -> None:
     """Trigger CVE testing process
     \f
@@ -86,15 +107,21 @@ def tester(
         directory: specify directory to store program output
         full_report: Boolean flag to include all tested CVE data in the report. Report only includes Unblocked / Partially blocked CVE data.
         out_file: name for the report file
+        tag: comma separated values for type of attack to test
+        format: format for the report
     """
-    if cve_id is not None:
-        cve_id=cve_id.split(",")
-    test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url,tag=tag)
+
+    test = Cve_tester(cve_id=cve_id or cve_id.split(','), directory=directory, waf_url=waf_url, tag=tag)
     result_directory = test.generate_raw()
     classify = Classifier(
         dir=result_directory, format=format, out_file=out_file, full_report=full_report
     )
     classify.reader()
 
+
+@click.option("-u","--url",help="Url where PoC is hosted")
+@click.command
+def extract_payload(url:str) -> None:
+    extract(url=url)
 
 main.add_command(tester)
