@@ -27,21 +27,6 @@ def mock_poc_url(mocker: MockFixture) -> Mock:
     return mock
 
 
-@pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
-@pytest.fixture
-def mock_head_request(mocker: MockFixture) -> Mock:
-    """Fixature to patch requests.head function
-
-    Args:
-        mocker: patches 'requests.get' code.
-
-    Returns:
-        Mock: a mock object which behaves in the same way as the patched code (requests.head response).
-    """
-    mock = mocker.patch("requests.head")
-    mock.return_value.status_code = 200
-    return mock
-
 
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 @pytest.fixture
@@ -54,16 +39,6 @@ def mock_no_poc_url(mocker: MockFixture) -> Mock:
     mock.return_value.status_code = 200
     return mock
 
-
-@pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
-@pytest.fixture
-def mock_unreachable_url(mocker: MockFixture) -> Mock:
-    """
-    Fixature to simulate an unreachable webpage
-    """
-    mock = mocker.patch("requests.head")
-    mock.return_value.status_code = 403
-    return mock
 
 
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
