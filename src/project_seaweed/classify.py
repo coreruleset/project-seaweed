@@ -53,7 +53,9 @@ class Classifier:
 
     def reader(self) -> None:
         """
-        Read contents of the directory, file by file and call false-negative classification on each file
+        Read contents of the directory, file by file and call false-negative classification on each file.
+
+        Generates a report file after classfication process.
         """
         files: List = [
             file
