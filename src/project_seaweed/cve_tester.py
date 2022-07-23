@@ -62,7 +62,7 @@ class Cve_tester:
                 "NUCLEI_IMAGE", default="projectdiscovery/nuclei:latest"
             )
             self.nuclei_threads = os.environ.get(
-                "NUCLEI_THREADS", default=50
+                "NUCLEI_THREADS", default=10
             )  # set rate-limiting to 50 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
             self.waf_url = "http://" + self.waf_name
             self.waf_env = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
