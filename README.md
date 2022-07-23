@@ -6,14 +6,11 @@ Reviewed the progress (It went great). Right now the report shows a boolean if a
 
 Tasks for the week
 
-1. Write integration tests for main
-2. Improve block indicators in report
-3. implement attack types in the project
-4. Create a google sheet from the report of various attacks
+1. ~~Write integration tests for main~~ (How to test / mock a waf url)
+2. ~~Improve block indicators in report~~
+3. ~~implement attack types in the project~~
+4. ~~Create a google sheet from the report of various attacks~~
 
-
-
-Progress:
 
 Notes:
 
