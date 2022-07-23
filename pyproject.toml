@@ -51,3 +51,10 @@ omit = ["src/project_seaweed/extract_payload.py"]
 [tool.coverage.report]
 show_missing = true
 fail_under = 80
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    'ignore::DeprecationWarning',
+]

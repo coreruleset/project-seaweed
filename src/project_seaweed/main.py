@@ -110,8 +110,9 @@ def tester(
         tag: comma separated values for type of attack to test
         format: format for the report
     """
-
-    test = Cve_tester(cve_id=cve_id or cve_id.split(','), directory=directory, waf_url=waf_url, tag=tag)
+    if cve_id is not None:
+        cve_id=cve_id.split(',')
+    test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url, tag=tag)
     result_directory = test.generate_raw()
     classify = Classifier(
         dir=result_directory, format=format, out_file=out_file, full_report=full_report

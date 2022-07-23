@@ -27,6 +27,7 @@ def test_cve_datatype() -> None:
 
 
 def test_csv_report(temp_dir: pytest.fixture) -> None:
+    """tests if a report is generated in CSV format"""
     out_file = f"{temp_dir}/report.csv"
     report_obj = Report("csv", out_file=out_file)
     for i in cve_data(3):
@@ -36,6 +37,7 @@ def test_csv_report(temp_dir: pytest.fixture) -> None:
 
 
 def test_json_report(temp_dir: pytest.fixture) -> None:
+    """Tests if a report is generated in json format"""
     out_file = f"{temp_dir}/report.json"
     report_obj = Report("json", out_file=out_file)
     for i in cve_data(3):
