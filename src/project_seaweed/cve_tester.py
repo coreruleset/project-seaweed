@@ -1,6 +1,7 @@
 """Launch Nuclei exploits against WAFs"""
 
 import sys
+from typing import List
 import docker
 import tempfile
 import traceback
@@ -73,8 +74,8 @@ class Cve_tester:
         else:
             sys.exit("URL is not reachable. Exiting program...")
 
-        self.temp_dir = directory or tempfile.mkdtemp()
-        self.cve_id = cve_id or []
+        self.temp_dir:str = directory or tempfile.mkdtemp()
+        self.cve_id:List = cve_id or []
         self.client = docker.client.from_env()
         self.tag = "-tags " + tag if tag is not None else ""
 
@@ -123,10 +124,9 @@ class Cve_tester:
         """
 
         if self.cve_id != []:
-
-            cves = self.cve_id.split(",")
-            templates = list(map(cve_payload_gen, cves))
-            templates = [temp for temp in templates if temp is not None]
+            """templates = list(map(cve_payload_gen, self.cve_id))
+            templates = [temp for temp in templates if temp is not None]"""
+            templates=cve_payload_gen(self.cve_id)
             nuclei_arg = f"-t {','.join(templates)}"
         else:
             logging.info("Testing all available CVEs...")

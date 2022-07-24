@@ -1,6 +1,9 @@
 """helper functions for the program"""
 
-from typing import Dict, Optional
+import os
+import re
+import sys
+from typing import Dict, List, Optional, Set
 import requests
 import yaml
 import click
@@ -68,7 +71,7 @@ def printer(msg: str, add: bool = True) -> None:
         click.secho(f"[-] {msg}", fg="red")
 
 
-def cve_payload_gen(cve: str) -> Optional[str]:
+def cve_payload_gen(cves: List) -> List:
     """Generate path for requested cve
 
     Args:
@@ -77,8 +80,14 @@ def cve_payload_gen(cve: str) -> Optional[str]:
     Returns:
         str: path for nuclei tepmlate of specified cve
     """
-    try:
-        to_return = f"cves/{cve.split('-')[1]}/{cve.upper()}.yaml"
-    except IndexError:
-        to_return = None
+    to_return=[]
+    for cve in cves:
+        try:
+            template = f"nuclei-templates/cves/{cve.split('-')[1]}/{cve.upper()}.yaml"
+            if os.path.exists(template):
+                to_return.append("/root/"+template)
+        except IndexError:
+            pass
+    if to_return == []:
+        sys.exit("No template found for specified CVE(s)")
     return to_return
