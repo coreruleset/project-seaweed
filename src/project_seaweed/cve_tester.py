@@ -123,10 +123,10 @@ class Cve_tester:
         '-t cves -pt http'
         """
 
-        if self.cve_id != []:
-            """templates = list(map(cve_payload_gen, self.cve_id))
-            templates = [temp for temp in templates if temp is not None]"""
+        if len(self.cve_id) != 0:
             templates=cve_payload_gen(self.cve_id)
+            if len(templates) == 0:
+                sys.exit("No template found for specified CVE(s)")
             nuclei_arg = f"-t {','.join(templates)}"
         else:
             logging.info("Testing all available CVEs...")

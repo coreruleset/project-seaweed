@@ -78,7 +78,7 @@ def cve_payload_gen(cves: List) -> List:
         cve: cve for which nuclei template needs to be found
 
     Returns:
-        str: path for nuclei tepmlate of specified cve
+        List: list of paths for nuclei tepmlates
     """
     to_return=[]
     for cve in cves:
@@ -88,6 +88,4 @@ def cve_payload_gen(cves: List) -> List:
                 to_return.append("/root/"+template)
         except IndexError:
             pass
-    if to_return == []:
-        sys.exit("No template found for specified CVE(s)")
     return to_return
