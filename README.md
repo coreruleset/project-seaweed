@@ -1,16 +1,24 @@
 # Project Seaweed
 
-## GSoC meet #7 Summary
+## GSoC meet #8 Summary
 
-Reviewed the progress (It went great). Right now the report shows a boolean if attack was blocked and % of attack blocked if partial block. To improve readability, we come up with better ways to represent information (Blocked | Not Blocked | Partial Block). To better understand the project reports, Export them as csv and create google sheets for various attack types. This will give us an initial overview of CRS and attack type relationships.
+Discussed about the program output and it's formatting for various environments (terminal, Github Actions, Gitlab ...). Reviewed the project report. Since the basic program is ready, we will now start to take the project to github actions.
 
-Tasks for the week
 
-1. ~~Write integration tests for main~~ (How to test / mock a waf url)
-2. ~~Improve block indicators in report~~
-3. ~~implement attack types in the project~~
-4. ~~Create a google sheet from the report of various attacks~~
+For anyone interested in the project report: https://docs.google.com/spreadsheets/d/1ElvPa8CAvSg8lwars4tfafokFZy59khLo2Hj_GbRXFM/edit?usp=sharing
 
+Tasks for the week:
+
+1. Work on logger output
+2. Work on a basic github action integration
+3. Add more attack types to google spreadsheet
+
+
+Doubts:
+
+1. Logger levels
+2. How to test / mock a waf url
+3. Nuclei templates in project root
 
 Notes:
 
@@ -18,7 +26,6 @@ To find unique tags in nuclei templates:
 
 `grep "tags" -r . | cut -d":" -f3 | sed 's/,/\n/g' | sed 's/ //g' | sort | uniq -c | sort -n`
 
-valid attacks: "lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
 Nuclei identifies HTTP based CVEs using the `requests` keyword in the templates.
 
 
