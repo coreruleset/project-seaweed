@@ -64,7 +64,7 @@ class Cve_tester:
             )
             self.nuclei_threads = os.environ.get(
                 "NUCLEI_THREADS", default=10
-            )  # set rate-limiting to 50 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
+            )  # set rate-limiting to 10 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
             self.waf_url = "http://" + self.waf_name
             self.waf_env = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
 
@@ -86,6 +86,8 @@ class Cve_tester:
         printer("Creating docker network...")
         self.network = self.client.networks.create(self.network_name, driver="bridge")
         printer("Creating apache server container...")
+        image_tag=self.web_server_image.split(':')[1] # httpd:1.2,image_tag=1.2
+        self.client.images.pull(self.web_server_image,tag=image_tag) # tag parameter takes precedence even if we define a tag in image name
         self.web_server_obj = self.client.containers.run(
             self.web_server_image,
             name=self.web_server_name,
@@ -95,6 +97,8 @@ class Cve_tester:
             hostname=self.web_server_name,
         )
         printer("Creating crs-modsec container...")
+        image_tag=self.waf_image.split(':')[1]
+        self.client.images.pull(self.waf_image,tag=image_tag)
         self.waf_obj = self.client.containers.run(
             self.waf_image,
             name=self.waf_name,
@@ -140,6 +144,8 @@ class Cve_tester:
         printer("Creating nuclei container...")
         # nuclei -u http://crs-waf -rl 50 -t cves -pt http -srd /tmp/tmp_1234
         entry_cmd = f"nuclei -u {self.waf_url} -rl {self.nuclei_threads} {self.get_cves()} {self.tag} -srd {self.temp_dir}"
+        image_tag=self.nuclei_image.split(':')[1]
+        self.client.images.pull(self.nuclei_image,tag=image_tag)
         self.nuclei_obj = self.client.containers.run(
             self.nuclei_image,
             remove=True,
