@@ -1,6 +1,5 @@
 """Entrypoint program & CLI interface"""
 
-import pytest
 from . import __version__
 import click
 from .classify import Classifier

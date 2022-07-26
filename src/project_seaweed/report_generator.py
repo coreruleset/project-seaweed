@@ -1,5 +1,6 @@
 """Class to generate program report"""
 
+import logging
 import os
 import json
 import csv
@@ -50,6 +51,7 @@ class Report:
         self.format = format
         if out_file is None:
             self.out_file = f"{os.getcwd()}/report.{format}"
+            logging.info("Report saved at:"+self.out_file)
         else:
             self.out_file = out_file
         self.data: List[cve_details] = []

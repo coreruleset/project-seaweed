@@ -1,9 +1,10 @@
 """Identify false negatives in nuclei's report"""
+import logging
 import re
 import os
 from typing import List
 from .report_generator import Report, cve_details
-from .util import parse_template
+from .util import parse_template,printer
 
 
 class Classifier:
@@ -62,6 +63,7 @@ class Classifier:
             for file in os.listdir(self.dir)
             if re.search(self.cve_file_regex, file) is not None
         ]
+        printer("Starting classification process...")
         for file in files:
             with open(f"{self.dir}{file}", "rb") as f:
                 # ignore all weird characters that may be found in an attack. We only need the response codes.
@@ -69,7 +71,7 @@ class Classifier:
             cve: str = re.search(self.cve_regex, data).group(0)
             block_status: str = self.find_block_type(data=data)
             if block_status == "Blocked" and self.full_report is False:
-                continue
+                continue # if full report is not needed then, skip results where attack was blocked.(Unblocked attacks are more interesting)
             else:
                 self.report.add_data(
                     cve_details(
@@ -78,4 +80,5 @@ class Classifier:
                         **parse_template(cve),
                     )
                 )
+        printer("Generating report...")
         self.report.gen_file()

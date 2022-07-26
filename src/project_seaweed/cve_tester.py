@@ -78,6 +78,7 @@ class Cve_tester:
         self.cve_id:List = cve_id or []
         self.client = docker.client.from_env()
         self.tag = "-tags " + tag if tag is not None else ""
+        logging.debug(self.__dict__)
 
     def create_crs(self) -> None:
         """
@@ -130,11 +131,12 @@ class Cve_tester:
         if len(self.cve_id) != 0:
             templates=cve_payload_gen(self.cve_id)
             if len(templates) == 0:
-                sys.exit("No template found for specified CVE(s)")
+                sys.exit("No template found for specified CVE(s). Exiting ...")
             nuclei_arg = f"-t {','.join(templates)}"
         else:
             logging.info("Testing all available CVEs...")
             nuclei_arg = "-t cves -pt http"
+        logging.debug("Nuclei templates: "+nuclei_arg)
         return nuclei_arg
 
     def create_nuclei(self) -> None:
@@ -144,6 +146,7 @@ class Cve_tester:
         printer("Creating nuclei container...")
         # nuclei -u http://crs-waf -rl 50 -t cves -pt http -srd /tmp/tmp_1234
         entry_cmd = f"nuclei -u {self.waf_url} -rl {self.nuclei_threads} {self.get_cves()} {self.tag} -srd {self.temp_dir}"
+        logging.debug("Nuclei Command: "+entry_cmd)
         image_tag=self.nuclei_image.split(':')[1]
         self.client.images.pull(self.nuclei_image,tag=image_tag)
         self.nuclei_obj = self.client.containers.run(
@@ -186,8 +189,7 @@ class Cve_tester:
             self.create_nuclei()
             self.change_permission()
         except Exception:
-            print(traceback.format_exc())
-            sys.exit(1)
+            sys.exit(traceback.format_exc())
         return self.temp_dir
 
     def __del__(self) -> None:
@@ -198,17 +200,21 @@ class Cve_tester:
         printer("Cleaning up...", add=False)
         try:
             self.nuclei_obj.stop()
+            logging.info("Stopped nuclei container")
         except AttributeError:
             pass
         try:
             self.web_server_obj.stop()
+            logging.info("Stopped web server container")
         except AttributeError:
             pass
         try:
             self.waf_obj.stop()
+            logging.info("Stopped modsec-crs container")
         except AttributeError:
             pass
         try:
             self.network.remove()
+            logging.info("Removed Docker network")
         except AttributeError:
             pass

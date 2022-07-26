@@ -16,7 +16,7 @@ Tasks for the week:
 
 Doubts:
 
-1. Logger levels
+1. ~~Logger levels~~
 2. How to test / mock a waf url
 3. Nuclei templates in project root
 
