@@ -42,6 +42,6 @@ def test_is_not_reachable(mock_unreachable_url:MockFixture) -> None:
     assert result_false == False
 
 def test_cve_payload_gen() -> None:
-    result=cve_payload_gen(cve=["CVE-2022-1337","not_a.cve","CVE-2020-8771"])
+    result=cve_payload_gen(cves=["CVE-2022-1337","not_a.cve","CVE-2020-8771"])
     assert len(result) == 1 # only one valid cve
 
