@@ -1,5 +1,6 @@
 """Entrypoint program & CLI interface"""
 
+import os
 from . import __version__
 import click
 from .classify import Classifier
@@ -109,6 +110,15 @@ def tester(
         tag: comma separated values for type of attack to test
         format: format for the report
     """
+
+    cve_id= os.environ.get("CVE_ID",default=cve_id)
+    waf_url=os.environ.get("WAF_URL",default=waf_url)
+    directory=os.environ.get("OUT_DIR",default=directory)
+    full_report=bool(os.environ.get("FULL_REPORT",default=full_report))
+    out_file=os.environ.get("OUT_FILE",default=out_file)
+    tag=os.environ.get("TAG",default=tag)
+    format=os.environ.get("FORMAT",default=format)
+
     if cve_id is not None:
         cve_id=cve_id.split(',')
     test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url, tag=tag)
