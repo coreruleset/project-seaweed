@@ -119,6 +119,8 @@ def tester(
     tag=os.environ.get("TAG",default=tag)
     format=os.environ.get("FORMAT",default=format)
 
+    print(cve_id,waf_url,directory,full_report,out_file,tag,format)
+
     if cve_id is not None:
         cve_id=cve_id.split(',')
     test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url, tag=tag)

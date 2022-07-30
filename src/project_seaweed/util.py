@@ -1,5 +1,6 @@
 """helper functions for the program"""
 
+import logging
 import os
 from typing import Dict, List
 import requests
@@ -19,6 +20,7 @@ def is_reachable(url: str) -> bool:
     Returns:
         bool: True if url is alive and responds with 200, False otherwise.
     """
+    logging.log(f"Testing url availability: {url}")
     try:
         response = requests.head(url=url)
         if response.status_code == 200:
