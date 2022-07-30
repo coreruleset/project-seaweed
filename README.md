@@ -11,7 +11,7 @@ Tasks for the week:
 
 1. ~~Work on logger output~~
 2. Work on a basic github action integration
-3. Add more attack types to google spreadsheet
+3. ~~Add more attack types to google spreadsheet~~
 
 
 Doubts:
@@ -19,7 +19,7 @@ Doubts:
 1. ~~Logger levels~~
 2. ~~How to test / mock a waf url~~
 3. ~~Nuclei templates in project root~~
-5. Github action flow
+5. ~~Github action flow~~
 6. ~~gsoc dashboard not getting updated.~~
 
 

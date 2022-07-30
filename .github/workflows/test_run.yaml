@@ -13,6 +13,8 @@ on:
         description: 'URL for the waf to be tested'
       cve_id:
         description: 'comma separated CVE Ids to test'
+      full_report:
+        description: 'Boolean to generate full report'
 
 jobs:
   Run:
@@ -23,6 +25,7 @@ jobs:
       FORMAT: ${{ github.event.inputs.format }}
       WAF_URL: ${{ github.event.inputs.waf_url }}
       CVE_ID: ${{ github.event.inputs.cve_id }}
+      FULL_REPORT: ${{ github.event.inputs.full_report }}
     runs-on: ubuntu-20.04
     steps:
     - name: Checkout
@@ -35,7 +38,7 @@ jobs:
     - name: install poetry
       run: pip install poetry==1.1.13
     - name: install project
-      run: poetry install project-seaweed
+      run: poetry install
     - name: run program
       run: poetry run project-seaweed tester
     - name: list files
