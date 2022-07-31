@@ -6,10 +6,10 @@ from typing import Dict, List
 import requests
 import yaml
 import click
-import requests
 from zipfile import ZipFile
 from io import BytesIO
 from shutil import rmtree
+
 
 def is_reachable(url: str) -> bool:
     """Check if URL is alive and responds with 200 OK
@@ -49,13 +49,17 @@ def parse_template(cve: str) -> Dict:
         data = yaml.load(f, Loader=yaml.SafeLoader)["info"]
     return {
         "name": data.get("name", "None"),
+
         "severity": data.get("severity", "None"),
+        
         "cvss-score": data.get("classification").get("cvss-score", "None")
         if data.get("classification") is not None
         else "None",
+        
         "cwe-id": data.get("classification").get("cwe-id", "None")
         if data.get("classification") is not None
         else "None",
+        
         "tags": data.get("tags", "None"),
     }
 
@@ -78,27 +82,32 @@ def cve_payload_gen(cves: List) -> List:
     """Generate path for requested cve
 
     Args:
-        cve: cve for which nuclei template needs to be found
+        cves: list of cves for which nuclei templates needs to be found
 
     Returns:
         List: list of paths for nuclei tepmlates
     """
-    to_return=[]
+    to_return = []
     for cve in cves:
         try:
             template = f"nuclei-templates/cves/{cve.split('-')[1]}/{cve.upper()}.yaml"
             if os.path.exists(template):
-                to_return.append("/root/"+template)
+                to_return.append("/root/" + template)
         except IndexError:
             pass
     return to_return
+
 
 def fetch_nuclei_templates() -> None:
     """Fetches latest nuclei templates"""
     if os.path.exists("nuclei-templates"):
         rmtree("nuclei-templates")
-    url="https://github.com/projectdiscovery/nuclei-templates/archive/refs/heads/master.zip"
-    resp=requests.get(url=url)
+
+    url = "https://github.com/projectdiscovery/nuclei-templates/archive/refs/heads/master.zip"
+
+    resp = requests.get(url=url)
+
     with ZipFile(BytesIO(resp.content)) as zip:
         zip.extractall()
-    os.rename("nuclei-templates-master","nuclei-templates")
+
+    os.rename("nuclei-templates-master", "nuclei-templates")

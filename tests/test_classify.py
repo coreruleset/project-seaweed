@@ -25,22 +25,26 @@ def response_writer(status: int) -> str:
 def mock_nuclei_results(temp_dir: pytest.fixture) -> str:
     """Simulate nuclei request/response output"""
     dir = temp_dir
-    print(dir)
     http_dir = dir + "/http"
     os.mkdir(http_dir)
+
     partial_block_file = f"{http_dir}/CVE_2022_0437.txt"
     full_block_file = f"{http_dir}/CVE_2016_1000131.txt"
     no_block_file = f"{http_dir}/CVE_2020_13937.txt"
+
     with open(partial_block_file, "w") as f:
         f.write("[CVE-2022-0437]\n")
         f.write(response_writer(403))
         f.write(response_writer(200))
+
     with open(full_block_file, "w") as f:
         f.write("[CVE-2016-1000131]\n")
         f.write(response_writer(403))
+
     with open(no_block_file, "w") as f:
         f.write("[CVE-2020-13937]\n")
         f.write(response_writer(200))
+
     return dir
 
 

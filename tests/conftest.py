@@ -7,7 +7,6 @@ from tempfile import mkdtemp
 from pytest_mock import MockFixture
 
 
-
 @pytest.fixture
 def temp_dir() -> str:
     """Creates a temporary directory
@@ -16,6 +15,7 @@ def temp_dir() -> str:
         str: name of the temporary directory
     """
     return mkdtemp()
+
 
 @pytest.fixture
 def mock_head_request(mocker: MockFixture) -> Mock:
@@ -30,6 +30,7 @@ def mock_head_request(mocker: MockFixture) -> Mock:
     mock = mocker.patch("requests.head")
     mock.return_value.status_code = 200
     return mock
+
 
 @pytest.fixture
 def mock_unreachable_url(mocker: MockFixture) -> Mock:

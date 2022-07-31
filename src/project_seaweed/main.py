@@ -114,29 +114,32 @@ def tester(
         format: format for the report
     """
 
-    cve_id= os.environ.get("CVE_ID",default=cve_id) # fetch value from env if set, else use CLI param
-    cve_id = cve_id if bool(cve_id) else None # bool('') equates to False. For cases when, env var is set but empty (GithubActions)
-    
-    waf_url=os.environ.get("WAF_URL",default=waf_url)
-    waf_url=waf_url if bool(waf_url) else None
-    
-    directory=os.environ.get("OUT_DIR",default=directory)
-    directory=directory if bool(directory) else None
-    
-    full_report=bool(os.environ.get("FULL_REPORT",default=full_report))
-    
-    out_file=os.environ.get("OUT_FILE",default=out_file)
-    
-    tag=os.environ.get("TAG",default=tag)
-    tag=tag if bool(tag) else None
-    
-    format=os.environ.get("FORMAT",default=format)
-    format=format if bool(format) else None
+    cve_id = os.environ.get(
+        "CVE_ID", default=cve_id
+    )  # fetch value from env if set, else use CLI param
+    cve_id = (
+        cve_id if bool(cve_id) else None
+    )  # bool('') equates to False. For cases when, env var is set but empty (GithubActions)
 
-    print(cve_id,waf_url,directory,full_report,out_file,tag,format)
+    waf_url = os.environ.get("WAF_URL", default=waf_url)
+    waf_url = waf_url if bool(waf_url) else None
+
+    directory = os.environ.get("OUT_DIR", default=directory)
+    directory = directory if bool(directory) else None
+
+    full_report = bool(os.environ.get("FULL_REPORT", default=full_report))
+
+    out_file = os.environ.get("OUT_FILE", default=out_file)
+
+    tag = os.environ.get("TAG", default=tag)
+    tag = tag if bool(tag) else None
+
+    format = os.environ.get("FORMAT", default=format)
+    format = format if bool(format) else None
 
     if cve_id is not None:
-        cve_id=cve_id.split(',')
+        cve_id = cve_id.split(",")
+
     test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url, tag=tag)
     result_directory = test.generate_raw()
     classify = Classifier(
@@ -145,9 +148,10 @@ def tester(
     classify.reader()
 
 
-@click.option("-u","--url",help="Url where PoC is hosted")
+@click.option("-u", "--url", help="Url where PoC is hosted")
 @click.command
-def extract_payload(url:str) -> None:
+def extract_payload(url: str) -> None:
     extract(url=url)
+
 
 main.add_command(tester)

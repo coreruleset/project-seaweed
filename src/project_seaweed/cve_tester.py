@@ -1,7 +1,7 @@
 """Launch Nuclei exploits against WAFs"""
 
 import sys
-from typing import List
+from typing import List, Optional
 import docker
 import tempfile
 import traceback
@@ -39,10 +39,10 @@ class Cve_tester:
 
     def __init__(
         self,
-        cve_id: list = None,
-        directory: str = None,
-        waf_url: str = None,
-        tag: str = None,
+        cve_id: Optional[List[str]] = None,
+        directory: Optional[str] = None,
+        waf_url: Optional[str] = None,
+        tag: Optional[str] = None,
     ) -> None:
         if waf_url is None:
             logging.info("Initializing modsec-crs setup")
@@ -74,8 +74,8 @@ class Cve_tester:
         else:
             sys.exit("URL is not reachable. Exiting program...")
 
-        self.temp_dir:str = directory or tempfile.mkdtemp()
-        self.cve_id:List = cve_id or []
+        self.temp_dir: str = directory or tempfile.mkdtemp()
+        self.cve_id: List = cve_id or []
         self.client = docker.client.from_env()
         self.tag = "-tags " + tag if tag is not None else ""
         logging.debug(self.__dict__)
@@ -86,9 +86,12 @@ class Cve_tester:
         """
         printer("Creating docker network...")
         self.network = self.client.networks.create(self.network_name, driver="bridge")
+
         printer("Creating apache server container...")
-        image_tag=self.web_server_image.split(':')[1] # httpd:1.2,image_tag=1.2
-        self.client.images.pull(self.web_server_image,tag=image_tag) # tag parameter takes precedence even if we define a tag in image name
+        image_tag = self.web_server_image.split(":")[1]  # httpd:1.2,image_tag=1.2
+        self.client.images.pull(
+            self.web_server_image, tag=image_tag
+        )  # tag parameter takes precedence even if we define a tag in image name
         self.web_server_obj = self.client.containers.run(
             self.web_server_image,
             name=self.web_server_name,
@@ -97,9 +100,10 @@ class Cve_tester:
             remove=True,
             hostname=self.web_server_name,
         )
+
         printer("Creating crs-modsec container...")
-        image_tag=self.waf_image.split(':')[1]
-        self.client.images.pull(self.waf_image,tag=image_tag)
+        image_tag = self.waf_image.split(":")[1]
+        self.client.images.pull(self.waf_image, tag=image_tag)
         self.waf_obj = self.client.containers.run(
             self.waf_image,
             name=self.waf_name,
@@ -129,14 +133,14 @@ class Cve_tester:
         """
 
         if len(self.cve_id) != 0:
-            templates=cve_payload_gen(self.cve_id)
+            templates = cve_payload_gen(self.cve_id)
             if len(templates) == 0:
                 sys.exit("No template found for specified CVE(s). Exiting ...")
             nuclei_arg = f"-t {','.join(templates)}"
         else:
             logging.info("Testing all available CVEs...")
             nuclei_arg = "-t cves -pt http"
-        logging.debug("Nuclei templates: "+nuclei_arg)
+        logging.debug("Nuclei templates: " + nuclei_arg)
         return nuclei_arg
 
     def create_nuclei(self) -> None:
@@ -146,9 +150,11 @@ class Cve_tester:
         printer("Creating nuclei container...")
         # nuclei -u http://crs-waf -rl 50 -t cves -pt http -srd /tmp/tmp_1234
         entry_cmd = f"nuclei -u {self.waf_url} -rl {self.nuclei_threads} {self.get_cves()} {self.tag} -srd {self.temp_dir}"
-        logging.debug("Nuclei Command: "+entry_cmd)
-        image_tag=self.nuclei_image.split(':')[1]
-        self.client.images.pull(self.nuclei_image,tag=image_tag)
+        
+        logging.debug("Nuclei Command: " + entry_cmd)
+        
+        image_tag = self.nuclei_image.split(":")[1]
+        self.client.images.pull(self.nuclei_image, tag=image_tag)
         self.nuclei_obj = self.client.containers.run(
             self.nuclei_image,
             remove=True,
@@ -180,14 +186,14 @@ class Cve_tester:
 
     def generate_raw(self) -> str:
         """
-        Stich all the functions together and write the output of testing
+        Stitch all the functions together and write the output of testing
         """
         try:
             printer(f"Results stored in {self.temp_dir}")
             if hasattr(self, "waf_name"):
                 self.create_crs()
             self.create_nuclei()
-            while not os.access(self.temp_dir+"/http",mode=os.R_OK):
+            while not os.access(self.temp_dir + "/http", mode=os.R_OK):
                 self.change_permission()
         except Exception:
             sys.exit(traceback.format_exc())

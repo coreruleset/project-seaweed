@@ -10,7 +10,7 @@ For anyone interested in the project report: https://docs.google.com/spreadsheet
 Tasks for the week:
 
 1. ~~Work on logger output~~
-2. Work on a basic github action integration
+2. ~~Work on a basic github action integration~~
 3. ~~Add more attack types to google spreadsheet~~
 
 

@@ -5,6 +5,7 @@ tests for the PoC extraction function
 from click.testing import CliRunner
 import pytest
 from project_seaweed.main import extract_payload
+
 # from project_seaweed.extract_payload import extract
 from pytest_mock import MockFixture
 from unittest.mock import Mock
@@ -27,7 +28,6 @@ def mock_poc_url(mocker: MockFixture) -> Mock:
     return mock
 
 
-
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
 @pytest.fixture
 def mock_no_poc_url(mocker: MockFixture) -> Mock:
@@ -38,7 +38,6 @@ def mock_no_poc_url(mocker: MockFixture) -> Mock:
     mock.return_value.text = "<html>no PoC data</html>"
     mock.return_value.status_code = 200
     return mock
-
 
 
 @pytest.mark.skip(reason="Skipping all tests for extract_payload for now.")
