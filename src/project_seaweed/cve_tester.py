@@ -187,7 +187,8 @@ class Cve_tester:
             if hasattr(self, "waf_name"):
                 self.create_crs()
             self.create_nuclei()
-            self.change_permission()
+            while not os.access(self.temp_dir+"/http",mode=os.R_OK):
+                self.change_permission()
         except Exception:
             sys.exit(traceback.format_exc())
         return self.temp_dir

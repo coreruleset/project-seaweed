@@ -21,6 +21,7 @@ Doubts:
 3. ~~Nuclei templates in project root~~
 5. ~~Github action flow~~
 6. ~~gsoc dashboard not getting updated.~~
+7. Let the user setup Nuclei? file permission errors, nuclei templates version mismatches, nuceli-templates fetch...
 
 
 Notes:
