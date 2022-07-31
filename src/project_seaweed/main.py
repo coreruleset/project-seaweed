@@ -1,7 +1,6 @@
 """Entrypoint program & CLI interface"""
 
 import os
-from typing_extensions import Required
 from . import __version__
 import click
 from .classify import Classifier
