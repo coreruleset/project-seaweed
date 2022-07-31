@@ -1,6 +1,7 @@
 """Entrypoint program & CLI interface"""
 
 import os
+from typing_extensions import Required
 from . import __version__
 import click
 from .classify import Classifier
@@ -18,6 +19,7 @@ import logging
     type=click.Choice(["debug", "info", "warning"], case_sensitive=False),
     help="log level",
     default="warning",
+    required=False,
     show_default=True,
 )
 def main(level: str) -> None:
@@ -54,6 +56,7 @@ def main(level: str) -> None:
     "--full-report",
     "full_report",
     is_flag=True,
+    required=False,
     help="Includes blocked attack's info in the report (bigger report)",
 )
 @click.option(
@@ -62,10 +65,11 @@ def main(level: str) -> None:
     type=click.Choice(["json", "csv"], case_sensitive=True),
     default="json",
     show_default=True,
+    required=False,
     help="format for report",
 )
 @click.option(
-    "--out-file", "out_file", required=False, help="location to save the report"
+    "--out-file", "out_file", required=True, help="Name & location of the report file"
 )
 @click.option(
     "--tag",
@@ -111,13 +115,24 @@ def tester(
         format: format for the report
     """
 
-    cve_id= os.environ.get("CVE_ID",default=cve_id)
+    cve_id= os.environ.get("CVE_ID",default=cve_id) # fetch value from env if set, else use CLI param
+    cve_id = cve_id if bool(cve_id) else None # bool('') equates to False. For cases when, env var is set but empty (GithubActions)
+    
     waf_url=os.environ.get("WAF_URL",default=waf_url)
+    waf_url=waf_url if bool(waf_url) else None
+    
     directory=os.environ.get("OUT_DIR",default=directory)
+    directory=directory if bool(directory) else None
+    
     full_report=bool(os.environ.get("FULL_REPORT",default=full_report))
+    
     out_file=os.environ.get("OUT_FILE",default=out_file)
+    
     tag=os.environ.get("TAG",default=tag)
+    tag=tag if bool(tag) else None
+    
     format=os.environ.get("FORMAT",default=format)
+    format=format if bool(format) else None
 
     print(cve_id,waf_url,directory,full_report,out_file,tag,format)
 
