@@ -42,5 +42,8 @@ jobs:
       run: poetry install --no-dev
     - name: run program
       run: poetry run project-seaweed tester
-    - name: list files
-      run: ls
+    - name: upload report
+      uses: actions/upload-artifact@v3
+      with:
+        name: report-artifact
+        path: ${{ github.event.inputs.out_file }}
