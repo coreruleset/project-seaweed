@@ -20,7 +20,7 @@ def is_reachable(url: str) -> bool:
     Returns:
         bool: True if url is alive and responds with 200, False otherwise.
     """
-    logging.log(f"Testing url availability: {url}")
+    logging.info(f"Testing url availability: {url}")
     try:
         response = requests.head(url=url)
         if response.status_code == 200:
