@@ -68,7 +68,7 @@ def main(level: str) -> None:
     help="format for report",
 )
 @click.option(
-    "--out-file", "out_file", required=True, help="Name & location of the report file"
+    "--out-file", "out_file", required=False, help="Name & location of the report file"
 )
 @click.option(
     "--tag",
