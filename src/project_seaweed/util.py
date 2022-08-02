@@ -6,9 +6,8 @@ from typing import Dict, List
 import requests
 import yaml
 import click
-from zipfile import ZipFile
-from io import BytesIO
-from shutil import rmtree
+
+home_dir = os.path.expanduser("~")
 
 
 def is_reachable(url: str) -> bool:
@@ -44,22 +43,18 @@ def parse_template(cve: str) -> Dict:
         Dict: return CVE name, severity, cvss-score,cwe-id and tags
     """
     year = cve.split("-")[1]
-    file_path = f"nuclei-templates/cves/{year}/{cve}.yaml"
+    file_path = f"{home_dir}/nuclei-templates/cves/{year}/{cve}.yaml"
     with open(file_path, "r") as f:
         data = yaml.load(f, Loader=yaml.SafeLoader)["info"]
     return {
         "name": data.get("name", "None"),
-
         "severity": data.get("severity", "None"),
-        
         "cvss-score": data.get("classification").get("cvss-score", "None")
         if data.get("classification") is not None
         else "None",
-        
         "cwe-id": data.get("classification").get("cwe-id", "None")
         if data.get("classification") is not None
         else "None",
-        
         "tags": data.get("tags", "None"),
     }
 
@@ -90,24 +85,10 @@ def cve_payload_gen(cves: List) -> List:
     to_return = []
     for cve in cves:
         try:
-            template = f"nuclei-templates/cves/{cve.split('-')[1]}/{cve.upper()}.yaml"
+            year = cve.split("-")[1]
+            template = f"{home_dir}/nuclei-templates/cves/{year}/{cve.upper()}.yaml"
             if os.path.exists(template):
-                to_return.append("/root/" + template)
+                to_return.append(template)
         except IndexError:
             pass
     return to_return
-
-
-def fetch_nuclei_templates() -> None:
-    """Fetches latest nuclei templates"""
-    if os.path.exists("nuclei-templates"):
-        rmtree("nuclei-templates")
-
-    url = "https://github.com/projectdiscovery/nuclei-templates/archive/refs/heads/master.zip"
-
-    resp = requests.get(url=url)
-
-    with ZipFile(BytesIO(resp.content)) as zip:
-        zip.extractall()
-
-    os.rename("nuclei-templates-master", "nuclei-templates")

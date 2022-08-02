@@ -45,6 +45,7 @@ def test_json_report(temp_dir: pytest.fixture) -> None:
     report_obj.gen_file()
     assert os.path.exists(out_file)
 
+
 def test_empty_report(temp_dir: pytest.fixture) -> None:
     """Check behaviour when report has not content"""
     out_file = f"{temp_dir}/report.json"

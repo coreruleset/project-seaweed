@@ -1,28 +1,20 @@
 # Project Seaweed
 
-## GSoC meet #8 Summary
+## GSoC meet #9 Summary
 
-Discussed about the program output and it's formatting for various environments (terminal, Github Actions, Gitlab ...). Reviewed the project report. Since the basic program is ready, we will now start to take the project to github actions.
+Reviewed Github action integration. Now we will be working on scheduling a cron job to trigger weekly (nuclei-templates releases). We will also store all the past reports in a dedicated github repository. We will use that repository to perform analysis of past and current reports to find what changed and when did it change. We will be writing a new command to compare reports in the project. In the report analysis we calculate numbers such as number of CVEs tested, number of blocks, non blocks and partial blocks, what was not blocked before and its being blocked now etc. When we run any github action we also integrate it with slack to get updates.
 
 
 For anyone interested in the project report: https://docs.google.com/spreadsheets/d/1ElvPa8CAvSg8lwars4tfafokFZy59khLo2Hj_GbRXFM/edit?usp=sharing
 
 Tasks for the week:
 
-1. ~~Work on logger output~~
-2. ~~Work on a basic github action integration~~
-3. ~~Add more attack types to google spreadsheet~~
-
-
-Doubts:
-
-1. ~~Logger levels~~
-2. ~~How to test / mock a waf url~~
-3. ~~Nuclei templates in project root~~
-5. ~~Github action flow~~
-6. ~~gsoc dashboard not getting updated.~~
-7. Let the user setup Nuclei? file permission errors, nuclei templates version mismatches, nuceli-templates fetch...
-
+1. Set-up slack integration
+2. Implement report analysis
+3. Setup Github repo for storing past reports
+4. Add support for more python versions
+5. Also export audit logs from crs and save in the above repo
+6. ~~Remove nuclei docker container and use local nuclei installation~~
 
 Notes:
 
@@ -47,25 +39,29 @@ Poetry is a tool for dependency management and packaging in Python.
 
 3. **Install docker**
 
-This project needs docker to setup a local web server, web application firewall and nuclei.
+This project needs docker to setup a local web server, web application firewall. If you're using a custom waf URL for testing, then docker is not needed. 
 
 [https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
 
-4. **Select Python version**
+5. **Install Nuclei**
+
+The program uses Nuclei to launch attacks. Make sure nuclei is in the path and nuclei templates are installed in the home directory and not a custom directory. Install from here: [https://nuclei.projectdiscovery.io/nuclei/get-started/#nuclei-installation](https://nuclei.projectdiscovery.io/nuclei/get-started/#nuclei-installation)
+
+6. **Select Python version**
 
 The project is tested on Python `3.9.13`. If you have multiple python versions installed, use the following command:
 
 `poetry env use 3.9`
 
-5. **Install the project**
+7. **Install the project**
 
 `poetry install`
 
-6. **Finally run the project**
+8. **Finally run the project**
 
 `poetry run project-seaweed`
 
-7. **Get help**
+9. **Get help**
 
 `poetry run project-seaweed --help`
 

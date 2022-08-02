@@ -1,5 +1,6 @@
 """Launch Nuclei exploits against WAFs"""
 
+import subprocess
 import sys
 from typing import List, Optional
 import docker
@@ -59,13 +60,10 @@ class Cve_tester:
             self.network_name = os.environ.get(
                 "NETWORK_NAME", default="seaweed-network"
             )
-            self.nuclei_image = os.environ.get(
-                "NUCLEI_IMAGE", default="projectdiscovery/nuclei:latest"
-            )
             self.nuclei_threads = os.environ.get(
-                "NUCLEI_THREADS", default=10
+                "NUCLEI_THREADS", default="10"
             )  # set rate-limiting to 10 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
-            self.waf_url = "http://" + self.waf_name
+            self.waf_url = "http://localhost:8080"
             self.waf_env = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
 
         elif is_reachable(waf_url):
@@ -77,7 +75,7 @@ class Cve_tester:
         self.temp_dir: str = directory or tempfile.mkdtemp()
         self.cve_id: List = cve_id or []
         self.client = docker.client.from_env()
-        self.tag = "-tags " + tag if tag is not None else ""
+        self.tag = ["-tags", tag] if tag is not None else []
         logging.debug(self.__dict__)
 
     def create_crs(self) -> None:
@@ -111,10 +109,11 @@ class Cve_tester:
             network=self.network_name,
             remove=True,
             detach=True,
+            ports={80: 8080},
             environment=self.waf_env,
         )
 
-    def get_cves(self) -> str:
+    def get_cves(self) -> List:
         """
         creates the cli arguements for launching nuclei.
         Uses regex to check format for supplied CVEs, skips cve otherwise.
@@ -136,52 +135,50 @@ class Cve_tester:
             templates = cve_payload_gen(self.cve_id)
             if len(templates) == 0:
                 sys.exit("No template found for specified CVE(s). Exiting ...")
-            nuclei_arg = f"-t {','.join(templates)}"
+            nuclei_arg = ["-templates", ",".join(templates)]
         else:
             logging.info("Testing all available CVEs...")
-            nuclei_arg = "-t cves -pt http"
-        logging.debug("Nuclei templates: " + nuclei_arg)
+            nuclei_arg = ["-templates", "cves", "-type", "http"]
+        logging.debug("Nuclei templates: ", nuclei_arg)
         return nuclei_arg
 
-    def create_nuclei(self) -> None:
+    def start_nuclei(self) -> None:
         """
-        Creates a docker container to run nuclei against waf using output from get_cves(). Saves nuclei output in temp_dir.
+        Updates and runs nuclei against waf using output from get_cves(). Saves nuclei output in temp_dir.
         """
-        printer("Creating nuclei container...")
-        # nuclei -u http://crs-waf -rl 50 -t cves -pt http -srd /tmp/tmp_1234
-        entry_cmd = f"nuclei -u {self.waf_url} -rl {self.nuclei_threads} {self.get_cves()} {self.tag} -srd {self.temp_dir}"
-        
-        logging.debug("Nuclei Command: " + entry_cmd)
-        
-        image_tag = self.nuclei_image.split(":")[1]
-        self.client.images.pull(self.nuclei_image, tag=image_tag)
-        self.nuclei_obj = self.client.containers.run(
-            self.nuclei_image,
-            remove=True,
-            detach=False,
-            network=self.network_name or "",
-            volumes={self.temp_dir: {"bind": self.temp_dir, "mode": "rw"}},
-            entrypoint=entry_cmd,
+        printer("Updating nuclei engine and fetching latest templates...")
+        subprocess.run(["nuclei", "-update", "-ut"])
+        printer("Starting nuclei scans...")
+        cves = self.get_cves()
+        logging.info(
+            " ".join(
+                [
+                    "nuclei",
+                    "-target",
+                    self.waf_url,
+                    "-rate-limit",
+                    self.nuclei_threads,
+                    "-store-resp-dir",
+                    self.temp_dir,
+                    *cves,
+                    *self.tag,
+                ]
+            )
         )
-
-    def change_permission(self) -> None:
-        """
-        Launches an alpine container to change the permissions on the temp_dir directory.
-        Previous nuclei container changed the permissions (root only) of temp_dir when it wrote it's output.
-        """
-        printer("Adding permissions to output folder...")
-        self.client.containers.run(
-            "alpine",
-            remove=True,
-            detach=True,
-            volumes={
-                self.temp_dir: {
-                    "bind": self.temp_dir,
-                    "mode": "rw",
-                }
-            },
-            tty=True,
-            command=f"sh -c 'chmod -R 777 {self.temp_dir}'",
+        subprocess.run(
+            [
+                "nuclei",
+                "-target",
+                self.waf_url,
+                "-rate-limit",
+                self.nuclei_threads,
+                "-store-resp-dir",
+                self.temp_dir,
+                *cves,
+                *self.tag,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
         )
 
     def generate_raw(self) -> str:
@@ -192,9 +189,7 @@ class Cve_tester:
             printer(f"Results stored in {self.temp_dir}")
             if hasattr(self, "waf_name"):
                 self.create_crs()
-            self.create_nuclei()
-            while not os.access(self.temp_dir + "/http", mode=os.R_OK):
-                self.change_permission()
+            self.start_nuclei()
         except Exception:
             sys.exit(traceback.format_exc())
         return self.temp_dir
@@ -205,11 +200,6 @@ class Cve_tester:
         Stops the apache and crs containers, which have auto remove enabled. Deletes the docker network.
         """
         printer("Cleaning up...", add=False)
-        try:
-            self.nuclei_obj.stop()
-            logging.info("Stopped nuclei container")
-        except AttributeError:
-            pass
         try:
             self.web_server_obj.stop()
             logging.info("Stopped web server container")

@@ -15,7 +15,7 @@ class cve_details:
         cve: CVE Id
     """
 
-    def __init__(self, cve: str, **kwargs: Dict[str,str]) -> None:
+    def __init__(self, cve: str, **kwargs: Dict[str, str]) -> None:
         self.cve = cve
         self.kwargs = kwargs
 
@@ -73,7 +73,7 @@ class Report:
         elif self.format == "csv":
             with open(self.out_file, "w") as f:
                 writer = csv.writer(f)
-                
+
                 writer.writerow(
                     [field for field in self.data[0].keys()]
                 )  # write field names at the top of csv using first element

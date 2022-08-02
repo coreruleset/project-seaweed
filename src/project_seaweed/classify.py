@@ -44,8 +44,8 @@ class Classifier:
         total_requests: int = len(re.findall(self.request_regex, data))
         blocked_requests: int = len(re.findall(self.forbidden_regex, data))
 
-        output:str=""
-        
+        output: str = ""
+
         if total_requests == blocked_requests:
             output = "Blocked"
         elif blocked_requests == 0:
@@ -77,7 +77,7 @@ class Classifier:
             cve: str = re.search(self.cve_regex, data).group(0)
 
             block_status: str = self.find_block_type(data=data)
-            
+
             if block_status == "Blocked" and self.full_report is False:
                 continue  # if full report is not needed then, skip results where attack was blocked.(Unblocked attacks are more interesting)
             else:
