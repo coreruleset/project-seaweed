@@ -36,10 +36,10 @@ jobs:
       with:
         python-version: 3.9
         architecture: x64
-    - name: Setup Go
-      uses: actions/setup-go@v3
-    - name: Install Nuclei
-      run: go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+    - name: Install nuclei
+      run: |
+        wget https://github.com/projectdiscovery/nuclei/releases/download/v2.7.5/nuclei_2.7.5_linux_amd64.zip
+        unzip nuclei_2.7.5_linux_amd64.zip
     - name: install poetry
       run: pip install poetry==1.1.13
     - name: install project
