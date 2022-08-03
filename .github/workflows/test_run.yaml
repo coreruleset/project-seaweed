@@ -18,7 +18,7 @@ on:
         description: 'Boolean to generate full report'
 
 jobs:
-  Run:
+  Project-runner:
     name: Project runner
     env:
       TAG: ${{ github.event.inputs.tags }}
@@ -37,6 +37,7 @@ jobs:
         python-version: 3.9
         architecture: x64
     - name: Install nuclei
+      # fetch latest nuclei binary, unzip and add to path
       run: |
         curl https://github.com/projectdiscovery/nuclei/releases/latest -s -L | egrep -o "/projectdiscovery/nuclei/releases/download/v[0-9]\.[0-9]\.[0-9]/nuclei_[0-9]\.[0-9]\.[0-9]_linux_amd64.zip" | wget --base=https://github.com -i -
         unzip nuclei*.zip
@@ -52,3 +53,58 @@ jobs:
       with:
         name: report-artifact
         path: ${{ github.event.inputs.out_file }}
+  Slack:
+    name: slack job
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [Project-runner]
+    steps:
+    - name: Successful execution
+      if: success()
+      uses: slackapi/slack-github-action@v1.18.0
+      with:
+        payload: |
+          {
+          "text": "Program finished successfully!",
+          "attachments": [
+            {
+              "pretext": "Finished",
+              "color": "28a745",
+              "fields": [
+                {
+                  "title": "Status",
+                  "short": true,
+                  "value": "Completed"
+                }
+              ]
+            }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    - name: Failure
+      if: failure()
+      uses: slackapi/slack-github-action@v1.18.0
+      with:
+        payload: |
+          {
+          "text": "Program ran into an error",
+          "attachments": [
+            {
+              "pretext": "Incomplete",
+              "color": "c91a23",
+              "fields": [
+                {
+                  "title": "Status",
+                  "short": false,
+                  "value": "Incomplete"
+                }
+              ]
+            }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
