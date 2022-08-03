@@ -53,14 +53,8 @@ jobs:
       with:
         name: report-artifact
         path: ${{ github.event.inputs.out_file }}
-  Slack:
-    name: slack job
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [Project-runner]
-    steps:
     - name: Successful execution
-      if: jobs.Project-runner.status == 'success'
+      if: success()
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
@@ -84,7 +78,7 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
     - name: Failure
-      if: jobs.Project-runner.status == 'failure'
+      if: failure()
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
