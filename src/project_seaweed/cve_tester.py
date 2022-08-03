@@ -146,8 +146,8 @@ class Cve_tester:
         """
         Updates and runs nuclei against waf using output from get_cves(). Saves nuclei output in temp_dir.
         """
-        printer("Updating nuclei engine and fetching latest templates...")
-        subprocess.run(["nuclei", "-update", "-ut"])
+        printer("Fetching latest nuclei templates...")
+        subprocess.run(["nuclei", "-ut"])
         printer("Starting nuclei scans...")
         cves = self.get_cves()
         logging.info(

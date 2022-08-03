@@ -85,7 +85,7 @@ def cve_payload_gen(cves: List) -> List:
     to_return = []
     print("HOME DIRECTORY ------------------------:",home_dir)
     print("nuclei templats:--------------------",os.path.exists(f"{home_dir}/nuclei-templates/"))
-    print(os.system("find / -type d -name nuclei-templates 2> /dev/null"))
+    #print(os.system("find / -type d -name nuclei-templates 2> /dev/null"))
     for cve in cves:
         try:
             year = cve.split("-")[1]
