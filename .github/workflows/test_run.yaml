@@ -60,7 +60,7 @@ jobs:
     needs: [Project-runner]
     steps:
     - name: Successful execution
-      if: Project-runner.status == 'sucess'
+      if: jobs.Project-runner.status == 'success'
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
@@ -84,7 +84,7 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
     - name: Failure
-      if: Project-runner.status == 'failure'
+      if: jobs.Project-runner.status == 'failure'
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
