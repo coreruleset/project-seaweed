@@ -9,7 +9,7 @@ For anyone interested in the project report: https://docs.google.com/spreadsheet
 
 Tasks for the week:
 
-1. Set-up slack integration
+1. ~~Set-up slack integration~~
 2. Implement report analysis
 3. Setup Github repo for storing past reports
 4. Add support for more python versions

@@ -178,7 +178,7 @@ class Cve_tester:
                 *self.tag,
             ],
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.DEVNULL,
         )
 
     def generate_raw(self) -> str:
