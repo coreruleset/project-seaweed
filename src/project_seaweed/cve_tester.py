@@ -8,7 +8,7 @@ import tempfile
 import traceback
 import os
 import logging
-from .util import is_reachable, printer, cve_payload_gen
+from project_seaweed.util import is_reachable, printer, cve_payload_gen
 
 
 class Cve_tester:
@@ -74,7 +74,7 @@ class Cve_tester:
 
         self.temp_dir: str = directory or tempfile.mkdtemp()
         self.cve_id: List = cve_id or []
-        self.client = docker.client.from_env()
+        self.client = docker.APIClient()
         self.tag = ["-tags", tag] if tag is not None else []
         logging.debug(self.__dict__)
 
@@ -83,34 +83,44 @@ class Cve_tester:
         Create apache and modsec-crs containers. Attach them to docker network.
         """
         printer("Creating docker network...")
-        self.network = self.client.networks.create(self.network_name, driver="bridge")
+        self.client.create_network(self.network_name, driver="bridge")
 
         printer("Creating apache server container...")
         image_tag = self.web_server_image.split(":")[1]  # httpd:1.2,image_tag=1.2
-        self.client.images.pull(
+        self.client.pull(
             self.web_server_image, tag=image_tag
         )  # tag parameter takes precedence even if we define a tag in image name
-        self.web_server_obj = self.client.containers.run(
-            self.web_server_image,
+        self.client.create_container(
+            image=self.web_server_image,
             name=self.web_server_name,
-            network=self.network_name,
             detach=True,
-            remove=True,
+            host_config=self.client.create_host_config(auto_remove=True),
             hostname=self.web_server_name,
         )
+        self.client.start(container=self.web_server_name)
 
         printer("Creating crs-modsec container...")
         image_tag = self.waf_image.split(":")[1]
-        self.client.images.pull(self.waf_image, tag=image_tag)
-        self.waf_obj = self.client.containers.run(
-            self.waf_image,
+        self.client.pull(self.waf_image, tag=image_tag)
+        self.client.create_container(
+            image=self.waf_image,
             name=self.waf_name,
             hostname=self.waf_name,
-            network=self.network_name,
-            remove=True,
+            host_config=self.client.create_host_config(
+                auto_remove=True, port_bindings={80: 8080}
+            ),
             detach=True,
-            ports={80: 8080},
+            ports=[80],
             environment=self.waf_env,
+        )
+        self.client.start(container=self.waf_name)
+
+        # connect both containers to the same network
+        self.client.connect_container_to_network(
+            container=self.web_server_name, net_id=self.network_name
+        )
+        self.client.connect_container_to_network(
+            container=self.waf_name, net_id=self.network_name
         )
 
     def get_cves(self) -> List:
@@ -201,17 +211,17 @@ class Cve_tester:
         """
         printer("Cleaning up...", add=False)
         try:
-            self.web_server_obj.stop()
+            self.client.stop(container=self.web_server_name)
             logging.info("Stopped web server container")
         except AttributeError:
             pass
         try:
-            self.waf_obj.stop()
+            self.client.stop(container=self.waf_name)
             logging.info("Stopped modsec-crs container")
         except AttributeError:
             pass
         try:
-            self.network.remove()
+            self.client.remove_network(self.network_name)
             logging.info("Removed Docker network")
         except AttributeError:
             pass
