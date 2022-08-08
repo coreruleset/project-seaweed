@@ -4,7 +4,7 @@ import re
 import os
 from typing import List
 from .report_generator import Report, cve_details
-from .util import parse_template, printer
+from .util import parse_template, printer, update_analysis
 
 
 class Classifier:
@@ -61,11 +61,17 @@ class Classifier:
 
         Generates a report file after classfication process.
         """
+        blocks=0
+        non_blocks=0
+        partial_blocks=0
+
         files: List = [
             file
             for file in os.listdir(self.dir)
             if re.search(self.cve_file_regex, file) is not None
         ]
+
+        update_analysis(cves_tested=len(files))
 
         printer("Starting classification process...")
 
@@ -78,16 +84,24 @@ class Classifier:
 
             block_status: str = self.find_block_type(data=data)
 
-            if block_status == "Blocked" and self.full_report is False:
-                continue  # if full report is not needed then, skip results where attack was blocked.(Unblocked attacks are more interesting)
+            if block_status == "Blocked":
+                blocks+=1
+                if self.full_report is False:
+                    continue  # if full report is not needed then, skip results where attack was blocked.(Unblocked attacks are more interesting)
+            elif block_status == "Not Blocked":
+                non_blocks+=1
             else:
-                self.report.add_data(
+                partial_blocks+=1
+            
+            self.report.add_data(
                     cve_details(
                         cve=cve,
                         blocked=block_status,
                         **parse_template(cve),
                     )
                 )
+
+        update_analysis(blocks=blocks,non_blocks=non_blocks,partial_blocks=partial_blocks)
 
         printer("Generating report...")
         self.report.gen_file()

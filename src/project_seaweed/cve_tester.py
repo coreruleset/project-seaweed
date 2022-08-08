@@ -8,7 +8,8 @@ import tempfile
 import traceback
 import os
 import logging
-from project_seaweed.util import is_reachable, printer, cve_payload_gen
+import requests
+from project_seaweed.util import is_reachable, printer, cve_payload_gen, update_analysis
 
 
 class Cve_tester:
@@ -123,6 +124,11 @@ class Cve_tester:
             container=self.waf_name, net_id=self.network_name
         )
 
+        waf_version=self.client.inspect_image(image=self.waf_image)['RepoTags'] if self.waf_image is not None else self.waf_url
+        web_server_version=self.client.inspect_image(image=self.web_server_image)['RepoTags'] if self.web_server_image is not None else self.waf_url
+        update_analysis(waf_version=waf_version,web_server_version=web_server_version)
+
+
     def get_cves(self) -> List:
         """
         creates the cli arguements for launching nuclei.
@@ -190,6 +196,14 @@ class Cve_tester:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+
+        # Fetch the installed version of nuclei templates
+        response = requests.get(
+            "https://github.com/projectdiscovery/nuclei-templates/releases/latest",
+            allow_redirects=False,
+        )
+        latest_version = response.headers["location"].split("/")[-1]
+        update_analysis(nuclei_templates_version=latest_version)
 
     def generate_raw(self) -> str:
         """

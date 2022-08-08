@@ -170,3 +170,5 @@ fetch_github.py
 *.csv
 *.json
 nuclei-templates/
+analysis.yaml
+report_analyzer.py

@@ -1,5 +1,6 @@
 """helper functions for the program"""
 
+import json
 import logging
 import os
 from typing import Dict, List
@@ -92,3 +93,9 @@ def cve_payload_gen(cves: List) -> List:
         except IndexError:
             pass
     return to_return
+
+def update_analysis(**kwargs):
+    with open("analysis.yaml","a+") as f:
+        data=yaml.load(f, Loader=yaml.SafeLoader) or {}
+        data.update(kwargs)
+        yaml.dump(data,f)
