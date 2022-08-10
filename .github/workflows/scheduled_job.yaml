@@ -1,0 +1,111 @@
+name: scheduled_test
+
+on:
+  schedule:
+  - cron: "0 12 * * SUN"
+  workflow_dispatch:
+
+jobs:
+  Project-runner:
+    strategy:
+      matrix:
+        tag: [lfi, fileupload]
+    name: Project runner
+    env:
+      TAG: ${{ matrix.tag }}
+      OUT_FILE: ${{ matrix.tag }}Report.csv
+      FORMAT: csv
+      FULL_REPORT: true
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.9
+        architecture: x64
+    - name: Install nuclei
+      # fetch latest nuclei binary, unzip and add to path
+      run: |
+        curl https://github.com/projectdiscovery/nuclei/releases/latest -s -L | egrep -o "/projectdiscovery/nuclei/releases/download/v[0-9]\.[0-9]\.[0-9]/nuclei_[0-9]\.[0-9]\.[0-9]_linux_amd64.zip" | wget --base=https://github.com -i -
+        unzip nuclei*.zip
+        echo "$PWD" >> $GITHUB_PATH
+    - name: install poetry
+      run: pip install poetry==1.1.13
+    - name: install project
+      run: poetry install --no-dev
+    - name: run program
+      run: poetry run project-seaweed tester
+    - name: rename file
+      run: mv analysis.yaml ${{ matrix.tag }}Analysis.yaml
+    - name: upload report
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.tag }}-artifact
+        path: |
+          $OUT_FILE
+          ${{ matrix.tag }}Analysis.yaml
+        retention-days: 1
+    - name: Failure
+      if: failure()
+      uses: slackapi/slack-github-action@v1.18.0
+      with:
+        payload: |
+          {
+          "text": "Program ran into an error",
+          "attachments": [
+            {
+              "pretext": "Incomplete",
+              "color": "c91a23",
+              "fields": [
+                {
+                  "title": "Status",
+                  "short": false,
+                  "value": "Incomplete",
+                  "Failing tag": ${{ matrix.tag }}
+                }
+              ]
+            }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+  Update-repo:
+    name: Update report repository
+    runs-on: ubuntu-20.04
+    needs: [Project-runner]
+    env:
+      DIR: Seaweed-Reports
+    strategy:
+      matrix:
+        tag: [lfi, fileupload]
+    steps:
+    - name: fetch repo
+      uses: actions/checkout@v3
+      with:
+        repository: vandanrohatgi/Seaweed-Reports
+        token: ${{ secrets.GAT }}
+        path: ${{ env.DIR }}
+    - name: set env
+      run: echo "TARGET_DIR=$DIR/$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
+    - name: create dir
+      run: mkdir -p ${{ env.TARGET_DIR }}
+    - name: fetch artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ matrix.tag }}-artifact
+        path: ${{ env.TARGET_DIR }}
+    - name: commit changes
+      working-directory: ${{ env.DIR }}
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add .
+        git commit -m "generated files for ${{ matrix.tag }}"
+        git push
+
+
+
+
