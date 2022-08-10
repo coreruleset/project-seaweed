@@ -44,7 +44,7 @@ jobs:
       with:
         name: ${{ matrix.tag }}-artifact
         path: |
-          $OUT_FILE
+          ${{ env.OUT_FILE }}
           ${{ matrix.tag }}Analysis.yaml
         retention-days: 1
     - name: Failure
@@ -88,6 +88,7 @@ jobs:
         repository: vandanrohatgi/Seaweed-Reports
         token: ${{ secrets.GAT }}
         path: ${{ env.DIR }}
+        fetch-depth: 20
     - name: set env
       run: echo "TARGET_DIR=$DIR/$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
     - name: create dir
