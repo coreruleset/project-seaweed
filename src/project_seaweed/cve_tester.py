@@ -124,10 +124,17 @@ class Cve_tester:
             container=self.waf_name, net_id=self.network_name
         )
 
-        waf_version=self.client.inspect_image(image=self.waf_image)['RepoTags'] if self.waf_image is not None else self.waf_url
-        web_server_version=self.client.inspect_image(image=self.web_server_image)['RepoTags'] if self.web_server_image is not None else self.waf_url
-        update_analysis(waf_version=waf_version,web_server_version=web_server_version)
-
+        waf_version = (
+            self.client.inspect_image(image=self.waf_image)["RepoTags"]
+            if self.waf_image is not None
+            else self.waf_url
+        )
+        web_server_version = (
+            self.client.inspect_image(image=self.web_server_image)["RepoTags"]
+            if self.web_server_image is not None
+            else self.waf_url
+        )
+        update_analysis(waf_version=waf_version, web_server_version=web_server_version)
 
     def get_cves(self) -> List:
         """
@@ -135,7 +142,7 @@ class Cve_tester:
         Uses regex to check format for supplied CVEs, skips cve otherwise.
 
         Returns:
-            str: CLI parameters specifying CVE(s) to run.
+            List: CLI parameters specifying CVE(s) to run.
 
         Example:
         >>> from project_seaweed.cve_tester import Cve_tester

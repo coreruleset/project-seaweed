@@ -3,13 +3,12 @@
 import os
 import logging
 import click
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 from project_seaweed import __version__
 from project_seaweed.classify import Classifier
 from project_seaweed.cve_tester import Cve_tester
 from project_seaweed.extract_payload import extract
 from project_seaweed.util import update_analysis
-
 
 
 @click.group()
@@ -140,8 +139,11 @@ def tester(
     format = os.environ.get("FORMAT", default=format)
     format = format if bool(format) else None
 
-    update_analysis(date=datetime.now(timezone.utc).strftime("%d %b %Y"),time=datetime.now(timezone.utc).strftime("%H:%M:%S UTC"))
-    
+    update_analysis(
+        date=datetime.now(timezone.utc).strftime("%d %b %Y"),
+        time=datetime.now(timezone.utc).strftime("%H:%M:%S UTC"),
+    )
+
     if cve_id is not None:
         cve_id = cve_id.split(",")
 
@@ -152,8 +154,15 @@ def tester(
     )
     classify.reader()
 
-    update_analysis(cve_id=cve_id, directory=directory, waf_url=waf_url, tag=tag,full_report=full_report,out_file=out_file,format=format)
-
+    update_analysis(
+        cve_id=cve_id,
+        directory=directory,
+        waf_url=waf_url,
+        tag=tag,
+        full_report=full_report,
+        out_file=out_file,
+        format=format,
+    )
 
 
 @click.option("-u", "--url", help="Url where PoC is hosted")

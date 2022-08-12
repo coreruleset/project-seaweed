@@ -67,6 +67,6 @@ def test_get_cves(cve_object: pytest.fixture, no_cve_object: pytest.fixture) -> 
     no_cve_test_obj = no_cve_object
     cve_output = cve_test_obj.get_cves()
     no_cve_output = no_cve_test_obj.get_cves()
-    assert cve_test_obj.cve_id[0] in cve_output
-    assert cve_test_obj.cve_id[1] in cve_output
-    assert no_cve_output == "-t cves -pt http"
+    assert cve_test_obj.cve_id[0] in cve_output[1]
+    assert cve_test_obj.cve_id[1] in cve_output[1]
+    assert no_cve_output == ["-templates", "cves", "-type", "http"]

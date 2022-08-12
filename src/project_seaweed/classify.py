@@ -61,9 +61,9 @@ class Classifier:
 
         Generates a report file after classfication process.
         """
-        blocks=0
-        non_blocks=0
-        partial_blocks=0
+        blocks = 0
+        non_blocks = 0
+        partial_blocks = 0
 
         files: List = [
             file
@@ -85,23 +85,25 @@ class Classifier:
             block_status: str = self.find_block_type(data=data)
 
             if block_status == "Blocked":
-                blocks+=1
+                blocks += 1
                 if self.full_report is False:
                     continue  # if full report is not needed then, skip results where attack was blocked.(Unblocked attacks are more interesting)
             elif block_status == "Not Blocked":
-                non_blocks+=1
+                non_blocks += 1
             else:
-                partial_blocks+=1
-            
-            self.report.add_data(
-                    cve_details(
-                        cve=cve,
-                        blocked=block_status,
-                        **parse_template(cve),
-                    )
-                )
+                partial_blocks += 1
 
-        update_analysis(blocks=blocks,non_blocks=non_blocks,partial_blocks=partial_blocks)
+            self.report.add_data(
+                cve_details(
+                    cve=cve,
+                    blocked=block_status,
+                    **parse_template(cve),
+                )
+            )
+
+        update_analysis(
+            blocks=blocks, non_blocks=non_blocks, partial_blocks=partial_blocks
+        )
 
         printer("Generating report...")
         self.report.gen_file()

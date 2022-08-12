@@ -10,8 +10,8 @@ For anyone interested in the project report: https://docs.google.com/spreadsheet
 Tasks for the week:
 
 1. ~~Set-up slack integration~~
-2. Implement report analysis
-3. Setup Github repo for storing past reports
+2. ~~Implement report analysis~~
+3. ~~Setup Github repo for storing past reports~~
 4. Add support for more python versions
 5. Also export audit logs from crs and save in the above repo
 6. ~~Remove nuclei docker container and use local nuclei installation~~
