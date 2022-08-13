@@ -1,5 +1,7 @@
 # Project Seaweed
 
+[![Tests](https://github.com/<your-username>/hypermodern-python/workflows/Tests/badge.svg)](https://github.com/vandanrohatgi/Project-Seaweed/actions?workflow=Tests)
+
 ## GSoC meet #9 Summary
 
 Reviewed Github action integration. Now we will be working on scheduling a cron job to trigger weekly (nuclei-templates releases). We will also store all the past reports in a dedicated github repository. We will use that repository to perform analysis of past and current reports to find what changed and when did it change. We will be writing a new command to compare reports in the project. In the report analysis we calculate numbers such as number of CVEs tested, number of blocks, non blocks and partial blocks, what was not blocked before and its being blocked now etc. When we run any github action we also integrate it with slack to get updates.

@@ -9,7 +9,7 @@ Nox Sessions
 
 nox.options.sessions = "lint", "tests", "safety", "mypy", "typeguard"
 locations = ["src", "tests", "noxfile.py", "docs/conf.py"]
-python_versions = ["3.9.13"]
+python_versions = ["3.7","3.8","3.9","3.10"]
 package = "project_seaweed"
 
 
