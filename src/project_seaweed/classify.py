@@ -3,8 +3,8 @@
 import re
 import os
 from typing import List
-from .report_generator import Report, cve_details
-from .util import parse_template, printer, update_analysis
+from project_seaweed.report_generator import Report, cve_details
+from project_seaweed.util import parse_template, printer, update_analysis
 
 
 class Classifier:
@@ -61,9 +61,9 @@ class Classifier:
 
         Generates a report file after classfication process.
         """
-        blocks = 0
-        non_blocks = 0
-        partial_blocks = 0
+        blocks:int = 0
+        non_blocks:int = 0
+        partial_blocks:int = 0
 
         files: List = [
             file
@@ -78,7 +78,7 @@ class Classifier:
         for file in files:
             with open(f"{self.dir}{file}", "rb") as f:
                 # ignore all weird characters that may be found in an attack. We only need the response codes.
-                data = f.read().decode("utf-8", errors="ignore")
+                data:str = f.read().decode("utf-8", errors="ignore")
 
             cve: str = re.search(self.cve_regex, data).group(0)
 

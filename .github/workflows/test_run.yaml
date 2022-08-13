@@ -5,21 +5,27 @@ on:
     inputs:
       tags:
         description: 'Specify attack type using tags'
+
       out_file:
         description: 'name of the report file'
         required: True
+      
       format:
         description: 'format for the report'
+      
       waf_url:
         description: 'URL for the waf to be tested'
+      
       cve_id:
         description: 'comma separated CVE Ids to test'
+      
       full_report:
         description: 'Boolean to generate full report'
 
 jobs:
   Project-runner:
     name: Project runner
+    
     env:
       TAG: ${{ github.event.inputs.tags }}
       OUT_FILE: ${{ github.event.inputs.out_file }}
@@ -27,32 +33,40 @@ jobs:
       WAF_URL: ${{ github.event.inputs.waf_url }}
       CVE_ID: ${{ github.event.inputs.cve_id }}
       FULL_REPORT: ${{ github.event.inputs.full_report }}
+    
     runs-on: ubuntu-20.04
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    
     - name: Setup python
       uses: actions/setup-python@v1
       with:
         python-version: 3.9
         architecture: x64
+    
     - name: Install nuclei
       # fetch latest nuclei binary, unzip and add to path
       run: |
         curl https://github.com/projectdiscovery/nuclei/releases/latest -s -L | egrep -o "/projectdiscovery/nuclei/releases/download/v[0-9]\.[0-9]\.[0-9]/nuclei_[0-9]\.[0-9]\.[0-9]_linux_amd64.zip" | wget --base=https://github.com -i -
         unzip nuclei*.zip
         echo "$PWD" >> $GITHUB_PATH
+    
     - name: install poetry
       run: pip install poetry==1.1.13
+    
     - name: install project
       run: poetry install --no-dev
+    
     - name: run program
       run: poetry run project-seaweed tester
+    
     - name: upload report
       uses: actions/upload-artifact@v3
       with:
         name: report-artifact
         path: ${{ github.event.inputs.out_file }}
+    
     - name: Successful execution
       if: success()
       uses: slackapi/slack-github-action@v1.18.0
@@ -77,6 +91,7 @@ jobs:
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    
     - name: Failure
       if: failure()
       uses: slackapi/slack-github-action@v1.18.0

@@ -15,7 +15,7 @@ from project_seaweed.util import is_reachable, printer, cve_payload_gen, update_
 class Cve_tester:
     """Tester class
 
-    Sets up apache server, modsecurity Waf running rules from Core rule set, nuclei container
+    Sets up apache server, modsecurity Waf running rules from Core rule set, nuclei
     and stores attack requests and waf responses inside a temporary directory.
 
     Initializes attributes conditionally. If the user provides a waf url, modsec-crs setup is not created. Creates all resources otherwise.
@@ -48,35 +48,35 @@ class Cve_tester:
     ) -> None:
         if waf_url is None:
             logging.info("Initializing modsec-crs setup")
-            self.waf_image = os.environ.get(
+            self.waf_image:str = os.environ.get(
                 "WAF_IMAGE", default="owasp/modsecurity-crs:apache"
             )
-            self.web_server_image = os.environ.get(
+            self.web_server_image:str = os.environ.get(
                 "WEB_SERVER_IMAGE", default="httpd:latest"
             )
-            self.waf_name = os.environ.get("WAF_NAME", default="crs-waf")
-            self.web_server_name = os.environ.get(
+            self.waf_name:str = os.environ.get("WAF_NAME", default="crs-waf")
+            self.web_server_name:str = os.environ.get(
                 "WEB_SERVER_NAME", default="httpd-server"
             )
-            self.network_name = os.environ.get(
+            self.network_name:str = os.environ.get(
                 "NETWORK_NAME", default="seaweed-network"
             )
-            self.nuclei_threads = os.environ.get(
+            self.nuclei_threads:str = os.environ.get(
                 "NUCLEI_THREADS", default="10"
             )  # set rate-limiting to 10 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
-            self.waf_url = "http://localhost:8080"
-            self.waf_env = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
+            self.waf_url:str = "http://localhost:8080"
+            self.waf_env:str = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
 
         elif is_reachable(waf_url):
             logging.info(f"using {waf_url} as target")
-            self.waf_url = waf_url
+            self.waf_url:str = waf_url
         else:
             sys.exit("URL is not reachable. Exiting program...")
 
         self.temp_dir: str = directory or tempfile.mkdtemp()
         self.cve_id: List = cve_id or []
         self.client = docker.APIClient()
-        self.tag = ["-tags", tag] if tag is not None else []
+        self.tag:List = ["-tags", tag] if tag is not None else []
         logging.debug(self.__dict__)
 
     def create_crs(self) -> None:
@@ -87,7 +87,7 @@ class Cve_tester:
         self.client.create_network(self.network_name, driver="bridge")
 
         printer("Creating apache server container...")
-        image_tag = self.web_server_image.split(":")[1]  # httpd:1.2,image_tag=1.2
+        image_tag:str = self.web_server_image.split(":")[1]  # httpd:1.2,image_tag=1.2
         self.client.pull(
             self.web_server_image, tag=image_tag
         )  # tag parameter takes precedence even if we define a tag in image name
@@ -101,7 +101,7 @@ class Cve_tester:
         self.client.start(container=self.web_server_name)
 
         printer("Creating crs-modsec container...")
-        image_tag = self.waf_image.split(":")[1]
+        image_tag:str = self.waf_image.split(":")[1]
         self.client.pull(self.waf_image, tag=image_tag)
         self.client.create_container(
             image=self.waf_image,
@@ -146,22 +146,22 @@ class Cve_tester:
 
         Example:
         >>> from project_seaweed.cve_tester import Cve_tester
-        >>> test_obj=Cve_tester(cve_id='CVE-2020-35729,CVE-2022-0595')
+        >>> test_obj=Cve_tester(cve_id=['CVE-2020-35729','CVE-2022-0595'])
         >>> test_obj.get_cves()
-        '-t cves/2020/CVE-2020-35729.yaml,cves/2022/CVE-2022-0595.yaml'
+        ['-templates' ,'cves/2020/CVE-2020-35729.yaml,cves/2022/CVE-2022-0595.yaml']
         >>> test_obj=Cve_tester()
         >>> test_obj.get_cves()
-        '-t cves -pt http'
+        ['-templates', 'cves', '-type', 'http']
         """
 
         if len(self.cve_id) != 0:
-            templates = cve_payload_gen(self.cve_id)
+            templates:List = cve_payload_gen(self.cve_id)
             if len(templates) == 0:
                 sys.exit("No template found for specified CVE(s). Exiting ...")
-            nuclei_arg = ["-templates", ",".join(templates)]
+            nuclei_arg:List = ["-templates", ",".join(templates)]
         else:
             logging.info("Testing all available CVEs...")
-            nuclei_arg = ["-templates", "cves", "-type", "http"]
+            nuclei_arg:List = ["-templates", "cves", "-type", "http"]
         logging.debug("Nuclei templates: ", nuclei_arg)
         return nuclei_arg
 
@@ -172,7 +172,7 @@ class Cve_tester:
         printer("Fetching latest nuclei templates...")
         subprocess.run(["nuclei", "-ut"])
         printer("Starting nuclei scans...")
-        cves = self.get_cves()
+        cves:List = self.get_cves()
         logging.info(
             " ".join(
                 [
@@ -209,7 +209,7 @@ class Cve_tester:
             "https://github.com/projectdiscovery/nuclei-templates/releases/latest",
             allow_redirects=False,
         )
-        latest_version = response.headers["location"].split("/")[-1]
+        latest_version:str = response.headers["location"].split("/")[-1]
         update_analysis(nuclei_templates_version=latest_version)
 
     def generate_raw(self) -> str:
