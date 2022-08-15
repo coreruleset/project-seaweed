@@ -114,7 +114,11 @@ jobs:
       with:
         name: ${{ matrix.tag }}-artifact
         path: ${{ env.TARGET_DIR }}
-    
+
+    - name: update latest
+      working-directory: ${{ env.DIR }}
+      run: cp -r ${{ env.TARGET_DIR }} latest/
+
     - name: commit changes
       working-directory: ${{ env.DIR }}
       run: |
