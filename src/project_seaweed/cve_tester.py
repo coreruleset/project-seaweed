@@ -125,12 +125,12 @@ class Cve_tester:
         )
 
         waf_version = (
-            self.client.inspect_image(image=self.waf_image)["RepoTags"]
+            self.client.inspect_image(image=self.waf_image)["RepoDigests"]
             if self.waf_image is not None
             else self.waf_url
         )
         web_server_version = (
-            self.client.inspect_image(image=self.web_server_image)["RepoTags"]
+            self.client.inspect_image(image=self.web_server_image)["RepoDigests"]
             if self.web_server_image is not None
             else self.waf_url
         )
