@@ -1,22 +1,21 @@
 # Project Seaweed
 
-[![Tests](https://github.com/<your-username>/hypermodern-python/workflows/Tests/badge.svg)](https://github.com/vandanrohatgi/Project-Seaweed/actions?workflow=Tests)
+[![Tests](https://github.com/vandanrohatgi/Project-Seaweed/workflows/Tests/badge.svg)](https://github.com/vandanrohatgi/Project-Seaweed/actions?workflow=Tests)
 
-## GSoC meet #9 Summary
+## GSoC meet #10 Summary
 
-Reviewed Github action integration. Now we will be working on scheduling a cron job to trigger weekly (nuclei-templates releases). We will also store all the past reports in a dedicated github repository. We will use that repository to perform analysis of past and current reports to find what changed and when did it change. We will be writing a new command to compare reports in the project. In the report analysis we calculate numbers such as number of CVEs tested, number of blocks, non blocks and partial blocks, what was not blocked before and its being blocked now etc. When we run any github action we also integrate it with slack to get updates.
+Achieved 10 GSoC meetings (yay!). Reviewed the slackbot and decided to add more informative messages in the bot update. Since the modsec-crs image does not contain the version number of the CRS we will use the latest commit hash to keep track of crs ruleset being used for testing. Right now the reports are under directories in a  (year)/(month)/(day) format. If multiple tests are run on the same day we leave it upto git versioning to keep track instead of adding an identifier to all the reports. Since at paranoia level 4 the audit log files are going to be huge we will not be integrating the extraction of these files in the program itself, instead we will document the process to extract them from the container.
 
-
-For anyone interested in the project report: https://docs.google.com/spreadsheets/d/1ElvPa8CAvSg8lwars4tfafokFZy59khLo2Hj_GbRXFM/edit?usp=sharing
 
 Tasks for the week:
 
-1. ~~Set-up slack integration~~
-2. ~~Implement report analysis~~
-3. ~~Setup Github repo for storing past reports~~
-4. Add support for more python versions
-5. Also export audit logs from crs and save in the above repo
-6. ~~Remove nuclei docker container and use local nuclei installation~~
+1. Work on Report comparison feature
+2. Customize slack bot with information from report analysis
+3. Document the crs audit log collection
+4. Add CRS commit hash to analysis report
+5. Fix tests github action
+
+Github repo for project reports and analysis: https://github.com/vandanrohatgi/Seaweed-Reports
 
 Notes:
 
