@@ -45,6 +45,7 @@ class Cve_tester:
         directory: Optional[str] = None,
         waf_url: Optional[str] = None,
         tag: Optional[str] = None,
+        keep_setup: bool = None,
     ) -> None:
         if waf_url is None:
             logging.info("Initializing modsec-crs setup")
@@ -64,8 +65,9 @@ class Cve_tester:
             self.nuclei_threads:str = os.environ.get(
                 "NUCLEI_THREADS", default="10"
             )  # set rate-limiting to 10 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
+            self.keep_setup:bool=keep_setup
             self.waf_url:str = "http://localhost:8080"
-            self.waf_env:str = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name]
+            self.waf_env:str = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name,"MODSEC_AUDIT_LOG=/root/audit.log"]
 
         elif is_reachable(waf_url):
             logging.info(f"using {waf_url} as target")
@@ -223,11 +225,13 @@ class Cve_tester:
             self.start_nuclei()
         except Exception:
             sys.exit(traceback.format_exc())
+        if self.keep_setup is False:
+            self.cleanup()
         return self.temp_dir
 
-    def __del__(self) -> None:
+    def cleanup(self) -> None:
         """
-        Destructor responsible for cleanup after objects go out of reference.
+        Function responsible for cleanup after objects go out of reference.
         Stops the apache and crs containers, which have auto remove enabled. Deletes the docker network.
         """
         printer("Cleaning up...", add=False)

@@ -61,6 +61,13 @@ def main(level: str) -> None:
     help="Includes blocked attack's info in the report (bigger report)",
 )
 @click.option(
+    "--keep-setup",
+    "keep_setup",
+    is_flag=True,
+    required=False,
+    help="Stops automatic removal of docker setup",
+)
+@click.option(
     "--format",
     "format",
     type=click.Choice(["json", "csv"], case_sensitive=True),
@@ -101,6 +108,7 @@ def tester(
     out_file: str,
     format: str,
     tag: str,
+    keep_setup:bool,
 ) -> None:
     """Trigger CVE testing process
     \f
@@ -131,6 +139,8 @@ def tester(
 
     full_report = bool(os.environ.get("FULL_REPORT", default=full_report))
 
+    keep_setup = bool(os.environ.get("KEEP_SETUP", default=keep_setup))
+
     out_file = os.environ.get("OUT_FILE", default=out_file)
 
     tag = os.environ.get("TAG", default=tag)
@@ -147,7 +157,7 @@ def tester(
     if cve_id is not None:
         cve_id = cve_id.split(",")
 
-    test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url, tag=tag)
+    test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url, tag=tag,keep_setup=keep_setup)
     result_directory = test.generate_raw()
     classify = Classifier(
         dir=result_directory, format=format, out_file=out_file, full_report=full_report

@@ -25,6 +25,19 @@ To find unique tags in nuclei templates:
 
 Nuclei identifies HTTP based CVEs using the `requests` keyword in the templates.
 
+## Fetching CRS logs from the container
+
+This project does not provide the functionality to fetch the logs from CRS container. However, you can use the `--keep-setup` flag to prevent the docker setup (crs container, apache container and docker network). After that you can fetch the audit logs using the following commands.
+
+`docker cp crs-waf:/root/audit.log <path to save log file>`
+
+**Caveat**: If you specify `--keep-setup`, you are responsible for performing the cleanup activity. To do that, just enter the following commands.
+
+`docker stop crs-waf`
+
+`docker stop httpd-server`
+
+`docker network rm seaweed-network`
 
 ## Installation
 
