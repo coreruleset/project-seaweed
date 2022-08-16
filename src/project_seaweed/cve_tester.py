@@ -124,13 +124,13 @@ class Cve_tester:
             container=self.waf_name, net_id=self.network_name
         )
 
-        waf_version = (
-            self.client.inspect_image(image=self.waf_image)["RepoDigests"]
+        waf_version:str = (
+            self.client.inspect_image(image=self.waf_image)["RepoDigests"][0]
             if self.waf_image is not None
             else self.waf_url
         )
-        web_server_version = (
-            self.client.inspect_image(image=self.web_server_image)["RepoDigests"]
+        web_server_version:str = (
+            self.client.inspect_image(image=self.web_server_image)["RepoDigests"][0]
             if self.web_server_image is not None
             else self.waf_url
         )
