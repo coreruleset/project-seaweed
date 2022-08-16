@@ -116,7 +116,7 @@ jobs:
         path: ${{ env.TARGET_DIR }}
 
     - name: update latest
-      run: cp -r ${{ env.TARGET_DIR }} latest/
+      run: cp -r ${{ env.TARGET_DIR }} ${{ env.DIR }}/latest/
 
     - name: commit changes
       working-directory: ${{ env.DIR }}
