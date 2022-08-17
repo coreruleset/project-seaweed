@@ -126,7 +126,7 @@ jobs:
         git config user.email github-actions@github.com
         git add .
         git commit -m "generated files for ${{ matrix.tag }}"
-        git -f push
+        git push --force-with-lease
 
 
 
