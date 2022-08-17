@@ -20,5 +20,13 @@ jobs:
     - run: pip install nox==2022.1.7
 
     - run: pip install poetry==1.1.13
-    
+
+    - name: Install nuclei
+      # fetch latest nuclei binary, unzip and add to path
+      run: |
+        curl https://github.com/projectdiscovery/nuclei/releases/latest -s -L | egrep -o "/projectdiscovery/nuclei/releases/download/v[0-9]\.[0-9]\.[0-9]/nuclei_[0-9]\.[0-9]\.[0-9]_linux_amd64.zip" | wget --base=https://github.com -i -
+        unzip nuclei*.zip
+        echo "$PWD" >> $GITHUB_PATH
+        nuclei -ut
+ 
     - run: nox -s tests
