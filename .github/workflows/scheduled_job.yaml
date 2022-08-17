@@ -115,10 +115,6 @@ jobs:
         name: ${{ matrix.tag }}-artifact
         path: ${{ env.TARGET_DIR }}
 
-    - name: update latest
-      working-directory: ${{ env.DIR }}
-      run: echo "$(date -u +%Y/%b/%d)" > latest.txt
-
     - name: commit changes
       working-directory: ${{ env.DIR }}
       run: |
@@ -126,8 +122,58 @@ jobs:
         git config user.email github-actions@github.com
         git add .
         git commit -m "generated files for ${{ matrix.tag }}"
-        git pull && git push
+        git push
+  
+  Post-test-job:
+    name: post testing action
+    runs-on: ubuntu-20.04
+    needs: [Update-repo]
+    env:
+      DIR: Seaweed-Reports
 
-
+    steps:
+    - name: fetch repo
+      uses: actions/checkout@v3
+      with:
+        repository: vandanrohatgi/Seaweed-Reports
+        token: ${{ secrets.GAT }}
+        path: ${{ env.DIR }}
+        fetch-depth: 20
+    
+    - name: update latest
+      working-directory: ${{ env.DIR }}
+      run: echo "$(date -u +%Y/%b/%d)" > latest.txt
+    
+    - name: commit changes
+      working-directory: ${{ env.DIR }}
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add .
+        git commit -m "Update latest.txt"
+        git push
+    
+    - name: Send slack message
+      uses: slackapi/slack-github-action@v1.18.0
+      with:
+        payload: |
+          {
+          "text": "Testing finished!",
+          "attachments": [
+            {
+              "pretext": "Complete",
+              "color": "28a745",
+              "fields": [
+                {
+                  "title": "Status",
+                  "value": "Complete"
+                }
+              ]
+            }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
 
