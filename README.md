@@ -11,9 +11,10 @@ Tasks for the week:
 
 1. Work on Report comparison feature
 2. Customize slack bot with information from report analysis
-3. Document the crs audit log collection
-4. Add CRS commit hash to analysis report
+3. ~~Document the crs audit log collection~~
+4. ~~Add CRS commit hash to analysis report~~
 5. Fix tests github action
+6. Open source license ?
 
 Github repo for project reports and analysis: https://github.com/vandanrohatgi/Seaweed-Reports
 

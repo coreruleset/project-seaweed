@@ -171,4 +171,3 @@ fetch_github.py
 *.json
 nuclei-templates/
 analysis.yaml
-report_analyzer.py
