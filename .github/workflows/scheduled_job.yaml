@@ -138,7 +138,6 @@ jobs:
         repository: vandanrohatgi/Seaweed-Reports
         token: ${{ secrets.GAT }}
         path: ${{ env.DIR }}
-        fetch-depth: 20
     
     - name: update latest
       working-directory: ${{ env.DIR }}
@@ -154,6 +153,7 @@ jobs:
         git push
     
     - name: Send slack message
+      if: always()
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
