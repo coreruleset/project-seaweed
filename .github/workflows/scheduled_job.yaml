@@ -115,9 +115,7 @@ jobs:
         name: ${{ matrix.tag }}-artifact
         path: ${{ env.TARGET_DIR }}
 
-    - name: Commit changes
-      working-directory: ${{ env.DIR }}
-      uses: stefanzweifel/git-auto-commit-action@v4
+    - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Generated files for ${{ matrix.tag }}
   
@@ -140,9 +138,7 @@ jobs:
       working-directory: ${{ env.DIR }}
       run: echo "$(date -u +%Y/%b/%d)" > latest.txt
     
-    - name: Commit changes
-      working-directory: ${{ env.DIR }}
-      uses: stefanzweifel/git-auto-commit-action@v4
+    - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Update latest.txt
     
