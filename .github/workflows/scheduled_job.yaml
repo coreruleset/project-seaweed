@@ -115,14 +115,11 @@ jobs:
         name: ${{ matrix.tag }}-artifact
         path: ${{ env.TARGET_DIR }}
 
-    - name: commit changes
+    - name: Commit changes
       working-directory: ${{ env.DIR }}
-      run: |
-        git config user.name github-actions
-        git config user.email github-actions@github.com
-        git add .
-        git commit -m "generated files for ${{ matrix.tag }}"
-        git push
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Generated files for ${{ matrix.tag }}
   
   Post-test-job:
     name: post testing action
@@ -143,17 +140,13 @@ jobs:
       working-directory: ${{ env.DIR }}
       run: echo "$(date -u +%Y/%b/%d)" > latest.txt
     
-    - name: commit changes
+    - name: Commit changes
       working-directory: ${{ env.DIR }}
-      run: |
-        git config user.name github-actions
-        git config user.email github-actions@github.com
-        git add .
-        git commit -m "Update latest.txt"
-        git push
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Update latest.txt
     
     - name: Send slack message
-      if: always()
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
