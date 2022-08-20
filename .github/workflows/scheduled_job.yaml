@@ -88,8 +88,6 @@ jobs:
     name: Update report repository
     runs-on: ubuntu-20.04
     needs: [Project-runner]
-    env:
-      DIR: Seaweed-Reports
     strategy:
       matrix:
         tag: [xxe, traversal]
@@ -100,11 +98,10 @@ jobs:
       with:
         repository: vandanrohatgi/Seaweed-Reports
         token: ${{ secrets.GAT }}
-        path: ${{ env.DIR }}
         fetch-depth: 20
     
     - name: set env
-      run: echo "TARGET_DIR=$DIR/$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
+      run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
     
     - name: create dir
       run: mkdir -p ${{ env.TARGET_DIR }}
@@ -123,8 +120,6 @@ jobs:
     name: post testing action
     runs-on: ubuntu-20.04
     needs: [Update-repo]
-    env:
-      DIR: Seaweed-Reports
 
     steps:
     - name: fetch repo
@@ -132,10 +127,8 @@ jobs:
       with:
         repository: vandanrohatgi/Seaweed-Reports
         token: ${{ secrets.GAT }}
-        path: ${{ env.DIR }}
     
     - name: update latest
-      working-directory: ${{ env.DIR }}
       run: echo "$(date -u +%Y/%b/%d)" > latest.txt
     
     - uses: stefanzweifel/git-auto-commit-action@v4
