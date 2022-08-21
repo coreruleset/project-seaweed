@@ -10,7 +10,7 @@ jobs:
   Project-runner:
     strategy:
       matrix:
-        tag: [xxe, traversal]
+        tag: [lfi, xss, fileupload, xxe, injection, traversal, disclosure, auth-bypass, ssrf, sqli, oast, rce]
     name: Project runner
     env:
       TAG: ${{ matrix.tag }}
@@ -90,7 +90,7 @@ jobs:
     needs: [Project-runner]
     strategy:
       matrix:
-        tag: [xxe, traversal]
+        tag: [lfi, xss, fileupload, xxe, injection, traversal, disclosure, auth-bypass, ssrf, sqli, oast, rce]
   
     steps:
     - name: fetch repo
@@ -154,7 +154,7 @@ jobs:
 
         for field in cves_tested blocks non_blocks partial_blocks
         do
-          echo "$field=$(yq .$field xxeAnalysis.yaml)" >> $GITHUB_ENV
+          echo "$field=$(yq .$field Analysis.yaml)" >> $GITHUB_ENV
         done
 
     - name: Send slack message
