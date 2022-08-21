@@ -99,6 +99,7 @@ jobs:
         repository: vandanrohatgi/Seaweed-Reports
         token: ${{ secrets.GAT }}
         fetch-depth: 20
+        ref: ${{ matrix.tag }}
     
     - name: set env
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
@@ -134,17 +135,6 @@ jobs:
     
     - name: set target directory
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
-
-    - name: update latest
-      run: echo ${{ env.TARGET_DIR }} > latest.txt
-    
-    - name: commit & push
-      run: |
-         git config user.name github-actions
-         git config user.email github-actions@github.com
-         git add latest.txt
-         git diff --quiet && git diff --staged --quiet || git commit -m"Update latest.txt"
-         git push
 
     - name: extract info
       run: |
