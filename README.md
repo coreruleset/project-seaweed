@@ -9,8 +9,8 @@ Achieved 10 GSoC meetings (yay!). Reviewed the slackbot and decided to add more 
 
 Tasks for the week:
 
-1. Work on Report comparison feature
-2. Customize slack bot with information from report analysis
+1. ~~Work on Report comparison feature~~
+2. ~~Customize slack bot with information from report analysis~~
 3. ~~Document the crs audit log collection~~
 4. ~~Add CRS commit hash to analysis report~~
 5. Fix tests github action
