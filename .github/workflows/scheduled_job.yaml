@@ -10,7 +10,7 @@ jobs:
   Project-runner:
     strategy:
       matrix:
-        tag: [lfi, xss, fileupload, xxe, injection, traversal, disclosure, auth-bypass, ssrf, sqli, oast, rce]
+        tag: [lfi, xss, fileupload, xxe, injection, traversal, disclosure, auth-bypass, ssrf, sqli, oast, rce, '']
     name: Project runner
     env:
       TAG: ${{ matrix.tag }}
@@ -90,7 +90,7 @@ jobs:
     needs: [Project-runner]
     strategy:
       matrix:
-        tag: [lfi, xss, fileupload, xxe, injection, traversal, disclosure, auth-bypass, ssrf, sqli, oast, rce]
+        tag: [lfi, xss, fileupload, xxe, injection, traversal, disclosure, auth-bypass, ssrf, sqli, oast, rce, '']
   
     steps:
     - name: fetch repo
