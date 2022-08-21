@@ -132,13 +132,31 @@ jobs:
         repository: vandanrohatgi/Seaweed-Reports
         token: ${{ secrets.GAT }}
     
+    - name: set target directory
+      run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
+
     - name: update latest
-      run: echo "$(date -u +%Y/%b/%d)" > latest.txt
+      run: echo ${{ env.TARGET_DIR }} > latest.txt
     
-    - uses: stefanzweifel/git-auto-commit-action@v4
-      with:
-        commit_message: Update latest.txt
-    
+    - name: commit & push
+      run: |
+         git config user.name github-actions
+         git config user.email github-actions@github.com
+         git add latest.txt
+         git diff --quiet && git diff --staged --quiet || git commit -m"Update latest.txt"
+         git push
+
+    - name: extract info
+      run: |
+        yq() {
+          docker run --rm -i -v "${PWD}/${{ env.TARGET_DIR }}":/workdir mikefarah/yq "$@"
+            }
+
+        for field in cves_tested blocks non_blocks partial_blocks
+        do
+          echo "$field=$(yq .$field xxeAnalysis.yaml)" >> $GITHUB_ENV
+        done
+
     - name: Send slack message
       uses: slackapi/slack-github-action@v1.18.0
       with:
@@ -147,7 +165,6 @@ jobs:
           "text": "Testing finished!",
           "attachments": [
             {
-              "pretext": "Complete",
               "color": "28a745",
               "fields": [
                 {
@@ -156,7 +173,19 @@ jobs:
                 },
                 {
                   "title": "cves tested",
-                  "value": "11"
+                  "value": ${{ env.cves_tested }}
+                },
+                {
+                  "title": "blocks",
+                  "value": ${{ env.blocks }}
+                },
+                {
+                  "title": "partial blocks",
+                  "value": ${{ env.partial_blocks }}
+                },
+                {
+                  "title": "non blocks",
+                  "value": ${{ env.non_blocks }}
                 }
               ]
             }
