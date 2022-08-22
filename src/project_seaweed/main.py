@@ -9,6 +9,7 @@ from project_seaweed.classify import Classifier
 from project_seaweed.cve_tester import Cve_tester
 from project_seaweed.extract_payload import extract
 from project_seaweed.util import update_analysis
+from project_seaweed.report_analyzer import analyze
 
 
 @click.group()
@@ -180,5 +181,12 @@ def tester(
 def extract_payload(url: str) -> None:
     extract(url=url)
 
+@click.option("-d1","--date1",default="latest",help="Primary report date for comparison. Ex: 2022/Sep/15")
+@click.option("-d2","--date2",help="Secondary report date for comparison. Ex: 2022/Aug/15")
+@click.option("-t","--tag",help="Type of report (attack type)")
+@click.command
+def analyzer(date1:str,date2:str,tag:str) -> None:
+    analyze(date1=date1,date2=date2,tag=tag)
 
 main.add_command(tester)
+main.add_command(analyzer)

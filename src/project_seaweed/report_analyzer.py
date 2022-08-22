@@ -77,5 +77,3 @@ def analyze(date1:str="",date2:str="",tag:str="") -> None:
         analysis_data2:Dict=yaml.load(response2,Loader=yaml.SafeLoader)
         for key in analysis_data1.keys():
             analysis_data1[key]"""
-    
-analyze(date1="latest",date2="2022/Aug/16",tag="fileupload")
