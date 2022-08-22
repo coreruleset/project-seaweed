@@ -100,6 +100,10 @@ jobs:
         token: ${{ secrets.GAT }}
         fetch-depth: 20
     
+    - name: create and checkout branch
+      if: ${{ matrix.tag != '' }}
+      run: git checkout -B ${{ matrix.tag }}
+    
     - name: set env
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
     
@@ -118,7 +122,7 @@ jobs:
          git config user.email github-actions@github.com
          git add .
          git commit -m "generated files for ${{ matrix.tag }}"
-         git push
+         git push --set-upstream origin ${{ matrix.tag }}
   
   Post-test-job:
     name: post testing action
@@ -134,17 +138,6 @@ jobs:
     
     - name: set target directory
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
-
-    - name: update latest
-      run: echo ${{ env.TARGET_DIR }} > latest.txt
-    
-    - name: commit & push
-      run: |
-         git config user.name github-actions
-         git config user.email github-actions@github.com
-         git add latest.txt
-         git diff --quiet && git diff --staged --quiet || git commit -m"Update latest.txt"
-         git push
 
     - name: extract info
       run: |
