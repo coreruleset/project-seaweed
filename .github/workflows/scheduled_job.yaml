@@ -99,7 +99,10 @@ jobs:
         repository: vandanrohatgi/Seaweed-Reports
         token: ${{ secrets.GAT }}
         fetch-depth: 20
-        ref: ${{ matrix.tag }}
+    
+    - name: create and checkout branch
+      if: ${{ matrix.tag != '' }}
+      run: git checkout -B ${{ matrix.tag }}
     
     - name: set env
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
@@ -119,7 +122,7 @@ jobs:
          git config user.email github-actions@github.com
          git add .
          git commit -m "generated files for ${{ matrix.tag }}"
-         git push
+         git push --set-upstream origin ${{ matrix.tag }}
   
   Post-test-job:
     name: post testing action
