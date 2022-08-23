@@ -23,7 +23,7 @@ Nuclei identifies HTTP based CVEs using the `requests` keyword in the templates.
 
 ## Fetching CRS logs from the container
 
-This project does not provide the functionality to fetch the logs from CRS container. However, you can use the `--keep-setup` flag to prevent the docker setup (crs container, apache container and docker network). After that you can fetch the audit logs using the following commands.
+This project does not provide the functionality to fetch the logs from CRS container. However, you can use the `--keep-setup` flag to prevent auto-removal of the docker setup (crs container, apache container and docker network). After that, you can fetch the audit logs using the following command.
 
 `docker cp crs-waf:/root/audit.log <path to save log file>`
 
