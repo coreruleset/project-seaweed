@@ -94,7 +94,12 @@ def cve_payload_gen(cves: List) -> List:
     return to_return
 
 
-def update_analysis(**kwargs:Dict) -> None:
+def update_analysis(**kwargs: Dict) -> None:
+    """Create and update analysis file
+
+    Args:
+        kwargs: key / value pairs for the data to be inserted
+    """
     with open("analysis.yaml", "a+") as f:
         data = yaml.load(f, Loader=yaml.SafeLoader) or {}
         data.update(kwargs)

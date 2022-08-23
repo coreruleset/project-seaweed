@@ -49,36 +49,40 @@ class Cve_tester:
     ) -> None:
         if waf_url is None:
             logging.info("Initializing modsec-crs setup")
-            self.waf_image:str = os.environ.get(
+            self.waf_image: str = os.environ.get(
                 "WAF_IMAGE", default="owasp/modsecurity-crs:apache"
             )
-            self.web_server_image:str = os.environ.get(
+            self.web_server_image: str = os.environ.get(
                 "WEB_SERVER_IMAGE", default="httpd:latest"
             )
-            self.waf_name:str = os.environ.get("WAF_NAME", default="crs-waf")
-            self.web_server_name:str = os.environ.get(
+            self.waf_name: str = os.environ.get("WAF_NAME", default="crs-waf")
+            self.web_server_name: str = os.environ.get(
                 "WEB_SERVER_NAME", default="httpd-server"
             )
-            self.network_name:str = os.environ.get(
+            self.network_name: str = os.environ.get(
                 "NETWORK_NAME", default="seaweed-network"
             )
-            self.nuclei_threads:str = os.environ.get(
+            self.nuclei_threads: str = os.environ.get(
                 "NUCLEI_THREADS", default="10"
             )  # set rate-limiting to 10 nuclei requests / second. Defaults to 150 which overloads CRS at paranoia level 4
-            self.keep_setup:bool=keep_setup
-            self.waf_url:str = "http://localhost:8080"
-            self.waf_env:str = ["PARANOIA=4", "BACKEND=http://" + self.web_server_name,"MODSEC_AUDIT_LOG=/root/audit.log"]
+            self.keep_setup: bool = keep_setup
+            self.waf_url: str = "http://localhost:8080"
+            self.waf_env: str = [
+                "PARANOIA=4",
+                "BACKEND=http://" + self.web_server_name,
+                "MODSEC_AUDIT_LOG=/root/audit.log",
+            ]
 
         elif is_reachable(waf_url):
             logging.info(f"using {waf_url} as target")
-            self.waf_url:str = waf_url
+            self.waf_url: str = waf_url
         else:
             sys.exit("URL is not reachable. Exiting program...")
 
         self.temp_dir: str = directory or tempfile.mkdtemp()
         self.cve_id: List = cve_id or []
         self.client = docker.APIClient()
-        self.tag:List = ["-tags", tag] if tag is not None else []
+        self.tag: List = ["-tags", tag] if tag is not None else []
         logging.debug(self.__dict__)
 
     def create_crs(self) -> None:
@@ -89,7 +93,7 @@ class Cve_tester:
         self.client.create_network(self.network_name, driver="bridge")
 
         printer("Creating apache server container...")
-        image_tag:str = self.web_server_image.split(":")[1]  # httpd:1.2,image_tag=1.2
+        image_tag: str = self.web_server_image.split(":")[1]  # httpd:1.2,image_tag=1.2
         self.client.pull(
             self.web_server_image, tag=image_tag
         )  # tag parameter takes precedence even if we define a tag in image name
@@ -103,7 +107,7 @@ class Cve_tester:
         self.client.start(container=self.web_server_name)
 
         printer("Creating crs-modsec container...")
-        image_tag:str = self.waf_image.split(":")[1]
+        image_tag: str = self.waf_image.split(":")[1]
         self.client.pull(self.waf_image, tag=image_tag)
         self.client.create_container(
             image=self.waf_image,
@@ -126,12 +130,12 @@ class Cve_tester:
             container=self.waf_name, net_id=self.network_name
         )
 
-        waf_version:str = (
+        waf_version: str = (
             self.client.inspect_image(image=self.waf_image)["RepoDigests"][0]
             if self.waf_image is not None
             else self.waf_url
         )
-        web_server_version:str = (
+        web_server_version: str = (
             self.client.inspect_image(image=self.web_server_image)["RepoDigests"][0]
             if self.web_server_image is not None
             else self.waf_url
@@ -157,13 +161,13 @@ class Cve_tester:
         """
 
         if len(self.cve_id) != 0:
-            templates:List = cve_payload_gen(self.cve_id)
+            templates: List = cve_payload_gen(self.cve_id)
             if len(templates) == 0:
                 sys.exit("No template found for specified CVE(s). Exiting ...")
-            nuclei_arg:List = ["-templates", ",".join(templates)]
+            nuclei_arg: List = ["-templates", ",".join(templates)]
         else:
             logging.info("Testing all available CVEs...")
-            nuclei_arg:List = ["-templates", "cves", "-type", "http"]
+            nuclei_arg: List = ["-templates", "cves", "-type", "http"]
         logging.debug("Nuclei templates: ", nuclei_arg)
         return nuclei_arg
 
@@ -174,7 +178,7 @@ class Cve_tester:
         printer("Fetching latest nuclei templates...")
         subprocess.run(["nuclei", "-ut"])
         printer("Starting nuclei scans...")
-        cves:List = self.get_cves()
+        cves: List = self.get_cves()
         logging.info(
             " ".join(
                 [
@@ -211,7 +215,7 @@ class Cve_tester:
             "https://github.com/projectdiscovery/nuclei-templates/releases/latest",
             allow_redirects=False,
         )
-        latest_version:str = response.headers["location"].split("/")[-1]
+        latest_version: str = response.headers["location"].split("/")[-1]
         update_analysis(nuclei_templates_version=latest_version)
 
     def generate_raw(self) -> str:

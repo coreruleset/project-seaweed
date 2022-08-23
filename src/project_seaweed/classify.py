@@ -61,9 +61,9 @@ class Classifier:
 
         Generates a report file after classfication process.
         """
-        blocks:int = 0
-        non_blocks:int = 0
-        partial_blocks:int = 0
+        blocks: int = 0
+        non_blocks: int = 0
+        partial_blocks: int = 0
 
         files: List = [
             file
@@ -78,7 +78,7 @@ class Classifier:
         for file in files:
             with open(f"{self.dir}{file}", "rb") as f:
                 # ignore all weird characters that may be found in an attack. We only need the response codes.
-                data:str = f.read().decode("utf-8", errors="ignore")
+                data: str = f.read().decode("utf-8", errors="ignore")
 
             cve: str = re.search(self.cve_regex, data).group(0)
 

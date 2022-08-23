@@ -109,7 +109,7 @@ def tester(
     out_file: str,
     format: str,
     tag: str,
-    keep_setup:bool,
+    keep_setup: bool,
 ) -> None:
     """Trigger CVE testing process
     \f
@@ -158,7 +158,13 @@ def tester(
     if cve_id is not None:
         cve_id = cve_id.split(",")
 
-    test = Cve_tester(cve_id=cve_id, directory=directory, waf_url=waf_url, tag=tag,keep_setup=keep_setup)
+    test = Cve_tester(
+        cve_id=cve_id,
+        directory=directory,
+        waf_url=waf_url,
+        tag=tag,
+        keep_setup=keep_setup,
+    )
     result_directory = test.generate_raw()
     classify = Classifier(
         dir=result_directory, format=format, out_file=out_file, full_report=full_report
@@ -181,12 +187,21 @@ def tester(
 def extract_payload(url: str) -> None:
     extract(url=url)
 
-@click.option("-d1","--date1",default="latest",help="Primary report date for comparison. Ex: 2022/Sep/15")
-@click.option("-d2","--date2",help="Secondary report date for comparison. Ex: 2022/Aug/15")
-@click.option("-t","--tag",help="Type of report (attack type)")
+
+@click.option(
+    "-d1",
+    "--date1",
+    default="latest",
+    help="Primary report date for comparison. Ex: 2022/Sep/15",
+)
+@click.option(
+    "-d2", "--date2", help="Secondary report date for comparison. Ex: 2022/Aug/15"
+)
+@click.option("-t", "--tag", help="Type of report (attack type)")
 @click.command
-def analyzer(date1:str,date2:str,tag:str) -> None:
-    analyze(date1=date1,date2=date2,tag=tag)
+def analyzer(date1: str, date2: str, tag: str) -> None:
+    analyze(date1=date1, date2=date2, tag=tag)
+
 
 main.add_command(tester)
 main.add_command(analyzer)

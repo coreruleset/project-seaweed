@@ -16,8 +16,8 @@ class cve_details:
     """
 
     def __init__(self, cve: str, **kwargs: Dict[str, str]) -> None:
-        self.cve:str = cve
-        self.kwargs:Dict[str, str] = kwargs
+        self.cve: str = cve
+        self.kwargs: Dict[str, str] = kwargs
 
     def output(self) -> OrderedDict:
         """Generate a dictionary from CVE details
@@ -48,12 +48,12 @@ class Report:
     """
 
     def __init__(self, format: str = "json", out_file: str = None) -> None:
-        self.format:str = format
+        self.format: str = format
         if out_file is None:
-            self.out_file:str = f"{os.getcwd()}/report.{format}"
+            self.out_file: str = f"{os.getcwd()}/report.{format}"
             logging.info("Report saved at:" + self.out_file)
         else:
-            self.out_file:str = out_file
+            self.out_file: str = out_file
         self.data: List[cve_details] = []
 
     def add_data(self, data: cve_details) -> None:

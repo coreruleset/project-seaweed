@@ -2,21 +2,16 @@
 
 [![Tests](https://github.com/vandanrohatgi/Project-Seaweed/workflows/Tests/badge.svg)](https://github.com/vandanrohatgi/Project-Seaweed/actions?workflow=Tests)
 
-## GSoC meet #10 Summary
+## GSoC meet #11 Summary
 
-Achieved 10 GSoC meetings (yay!). Reviewed the slackbot and decided to add more informative messages in the bot update. Since the modsec-crs image does not contain the version number of the CRS we will use the latest commit hash to keep track of crs ruleset being used for testing. Right now the reports are under directories in a  (year)/(month)/(day) format. If multiple tests are run on the same day we leave it upto git versioning to keep track instead of adding an identifier to all the reports. Since at paranoia level 4 the audit log files are going to be huge we will not be integrating the extraction of these files in the program itself, instead we will document the process to extract them from the container.
 
+Reviewed the report comparison and slack integration. While they leave a lot of room to be desired, we will be focusing more on documentation and tests since we are approaching the end of GSoC. Added the feature to extract audit.log files after testing is done. 
 
 Tasks for the week:
 
-1. ~~Work on Report comparison feature~~
-2. ~~Customize slack bot with information from report analysis~~
-3. ~~Document the crs audit log collection~~
-4. ~~Add CRS commit hash to analysis report~~
-5. Fix tests github action
-6. Open source license ?
-
-Github repo for project reports and analysis: https://github.com/vandanrohatgi/Seaweed-Reports
+1. Fix tests github action
+2. ~~Add Open source license~~
+3. Work on tests and documentation
 
 Notes:
 
