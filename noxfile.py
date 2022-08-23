@@ -9,7 +9,6 @@ Nox Sessions
 
 nox.options.sessions = "lint", "tests", "safety", "mypy", "typeguard"
 locations = ["src", "tests", "noxfile.py", "docs/conf.py"]
-python_versions = ["3.7","3.8","3.9","3.10"]
 package = "project_seaweed"
 
 
@@ -28,7 +27,7 @@ def install_with_constraints(session: Session, *args: str, **kwargs: str) -> Non
         session.install(f"--constraint={requirements.name}", *args, **kwargs)
 
 
-@nox.session(python=python_versions)
+@nox.session
 def tests(session: Session) -> None:
     """Run the test suite."""
     args = session.posargs or ["--cov", "-m", "not e2e"]
@@ -39,7 +38,7 @@ def tests(session: Session) -> None:
     session.run("pytest", *args)
 
 
-@nox.session(python=python_versions)
+@nox.session
 def black(session: Session) -> None:
     """Run black code formatter."""
     args = session.posargs or locations
@@ -47,7 +46,7 @@ def black(session: Session) -> None:
     session.run("black", *args)
 
 
-@nox.session(python=python_versions)
+@nox.session
 def lint(session: Session) -> None:
     """Lint using flake8."""
     args = session.posargs or locations
@@ -64,7 +63,7 @@ def lint(session: Session) -> None:
     session.run("flake8", *args)
 
 
-@nox.session(python=python_versions)
+@nox.session
 def safety(session: Session) -> None:
     """Scan dependencies for insecure packages."""
     with tempfile.NamedTemporaryFile() as requirements:
@@ -81,7 +80,7 @@ def safety(session: Session) -> None:
         session.run("safety", "check", f"--file={requirements.name}", "--full-report")
 
 
-@nox.session(python=python_versions)
+@nox.session
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
     args = session.posargs or locations
@@ -89,7 +88,7 @@ def mypy(session: Session) -> None:
     session.run("mypy", *args)
 
 
-@nox.session(python=python_versions)
+@nox.session
 def xdoctest(session: Session) -> None:
     """Run examples with xdoctest."""
     args = session.posargs or ["all"]
@@ -98,7 +97,7 @@ def xdoctest(session: Session) -> None:
     session.run("python", "-m", "xdoctest", package, *args)
 
 
-@nox.session(python=python_versions)
+@nox.session
 def typeguard(session: Session) -> None:
     """Runtime type checking"""
     args = session.posargs or ["-m", "not e2e"]
@@ -107,7 +106,7 @@ def typeguard(session: Session) -> None:
     session.run("pytest", f"--typeguard-packages={package}", *args)
 
 
-@nox.session(python=python_versions)
+@nox.session
 def docs(session: Session) -> None:
     """Build the documentation."""
     session.run("poetry", "install", "--no-dev", external=True)
