@@ -51,7 +51,7 @@ jobs:
     - name: upload report
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.tag }}-artifact
+        name: ${{ matrix.tag }}Artifact
         path: |
           ${{ env.OUT_FILE }}
           ${{ matrix.tag }}Analysis.yaml
@@ -141,7 +141,7 @@ jobs:
 
         for field in cves_tested blocks non_blocks partial_blocks
         do
-          echo "$field=$(yq .$field Analysis.yaml)" >> $GITHUB_ENV
+          echo "$field=$(yq .$field Artifact/Analysis.yaml)" >> $GITHUB_ENV
         done
 
     - name: Send slack message
