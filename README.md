@@ -9,7 +9,7 @@ Reviewed the report comparison and slack integration. While they leave a lot of 
 
 Tasks for the week:
 
-1. Fix tests github action
+1. ~~Fix tests github action~~
 2. ~~Add Open source license~~
 3. Work on tests and documentation
 

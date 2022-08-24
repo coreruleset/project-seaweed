@@ -253,6 +253,6 @@ class Cve_tester:
                 logging.info("Removed Docker network")
             except AttributeError:
                 pass
-        
+
         else:
             pass

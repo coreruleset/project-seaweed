@@ -123,6 +123,7 @@ def tester(
         out_file: name for the report file
         tag: comma separated values for type of attack to test
         format: format for the report
+        keep_setup: Boolena flag to retain docker setup
     """
 
     cve_id = os.environ.get(
