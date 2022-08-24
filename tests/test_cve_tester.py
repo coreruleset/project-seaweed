@@ -8,7 +8,7 @@ import docker
 
 
 
-def test_crs(docker_client: pytest.fixture) -> None:
+def test_crs() -> None:
     """Test if web server and CRS containers are created successfully"""
     test_obj = Cve_tester()
     docker_client=docker.from_env()
