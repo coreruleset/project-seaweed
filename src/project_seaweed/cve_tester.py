@@ -45,7 +45,7 @@ class Cve_tester:
         directory: Optional[str] = None,
         waf_url: Optional[str] = None,
         tag: Optional[str] = None,
-        keep_setup: bool = None,
+        keep_setup: bool = False,
     ) -> None:
         if waf_url is None:
             logging.info("Initializing modsec-crs setup")
