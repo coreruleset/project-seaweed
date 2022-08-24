@@ -229,28 +229,30 @@ class Cve_tester:
             self.start_nuclei()
         except Exception:
             sys.exit(traceback.format_exc())
-        if self.keep_setup is False:
-            self.cleanup()
         return self.temp_dir
 
-    def cleanup(self) -> None:
+    def __del__(self) -> None:
         """
         Function responsible for cleanup after objects go out of reference.
         Stops the apache and crs containers, which have auto remove enabled. Deletes the docker network.
         """
-        printer("Cleaning up...", add=False)
-        try:
-            self.client.stop(container=self.web_server_name)
-            logging.info("Stopped web server container")
-        except AttributeError:
-            pass
-        try:
-            self.client.stop(container=self.waf_name)
-            logging.info("Stopped modsec-crs container")
-        except AttributeError:
-            pass
-        try:
-            self.client.remove_network(self.network_name)
-            logging.info("Removed Docker network")
-        except AttributeError:
+        if self.keep_setup is False:
+            printer("Cleaning up...", add=False)
+            try:
+                self.client.stop(container=self.web_server_name)
+                logging.info("Stopped web server container")
+            except AttributeError:
+                pass
+            try:
+                self.client.stop(container=self.waf_name)
+                logging.info("Stopped modsec-crs container")
+            except AttributeError:
+                pass
+            try:
+                self.client.remove_network(self.network_name)
+                logging.info("Removed Docker network")
+            except AttributeError:
+                pass
+        
+        else:
             pass
