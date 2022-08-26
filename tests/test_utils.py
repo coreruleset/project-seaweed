@@ -1,7 +1,7 @@
 """Tests for util functions"""
 
 import pytest
-from project_seaweed.util import is_reachable, parse_template, cve_payload_gen
+from project_seaweed.util import is_reachable, parse_template, cve_payload_gen,update_analysis
 from pytest_mock import MockFixture
 import yaml
 
@@ -49,3 +49,9 @@ def test_is_not_reachable(mock_unreachable_url: MockFixture) -> None:
 def test_cve_payload_gen() -> None:
     result = cve_payload_gen(cves=["CVE-2022-1337", "not_a.cve", "CVE-2020-8771"])
     assert len(result) == 1  # only one valid cve
+
+def test_update_analysis() -> None:
+    update_analysis(random_value='unique_token_123!@')
+    with open('analysis.yaml','r') as f:
+        data=f.read()
+    assert 'unique_token_123!@' in data
