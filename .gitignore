@@ -164,9 +164,7 @@ cython_debug/
 
 *.bak
 .vscode/
-docs/
 results/
-fetch_github.py
 *.csv
 *.json
 nuclei-templates/

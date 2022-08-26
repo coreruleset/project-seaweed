@@ -8,7 +8,7 @@ Nox Sessions
 """
 
 nox.options.sessions = "lint", "tests", "safety", "mypy", "typeguard"
-locations = ["src", "tests", "noxfile.py", "docs/conf.py"]
+locations = ["src", "tests", "noxfile.py"]
 package = "project_seaweed"
 
 
@@ -86,15 +86,6 @@ def mypy(session: Session) -> None:
     args = session.posargs or locations
     install_with_constraints(session, "mypy")
     session.run("mypy", *args)
-
-
-@nox.session
-def xdoctest(session: Session) -> None:
-    """Run examples with xdoctest."""
-    args = session.posargs or ["all"]
-    session.run("poetry", "install", "--no-dev", external=True)
-    install_with_constraints(session, "xdoctest")
-    session.run("python", "-m", "xdoctest", package, *args)
 
 
 @nox.session
