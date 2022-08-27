@@ -11,7 +11,13 @@ Tasks for the week:
 
 1. ~~Fix tests github action~~
 2. ~~Add Open source license~~
-3. Work on tests and documentation
+3. ~~Work on tests and documentation~~
+
+doubts:
+
+1. Stable place for the project (personal or crs org?)
+2. After the place is decided we can move on to integrating readthedocs to host documentation
+3. project report (pdf, blog, or github readme)
 
 Notes:
 
