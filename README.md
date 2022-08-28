@@ -1,6 +1,6 @@
 # Project Seaweed
 
-[![Tests](https://github.com/vandanrohatgi/Project-Seaweed/workflows/Tests/badge.svg)](https://github.com/vandanrohatgi/Project-Seaweed/actions?workflow=Tests)
+[![Tests](https://github.com/coreruleset/Project-Seaweed/workflows/Tests/badge.svg)](https://github.com/coreruleset/Project-Seaweed/actions?workflow=Tests)
 
 ## GSoC meet #11 Summary
 
@@ -45,7 +45,7 @@ This project does not provide the functionality to fetch the logs from CRS conta
 
 1. **Clone the repository**
 
-`git clone https://github.com/vandanrohatgi/Project-Seaweed.git`
+`git clone https://github.com/coreruleset/Project-Seaweed.git`
 
 2. **Install poetry** 
 

@@ -6,7 +6,7 @@ Installation
 
 1. **Clone the repository**
 
-`git clone https://github.com/vandanrohatgi/Project-Seaweed.git`
+`git clone https://github.com/coreruleset/Project-Seaweed.git`
 
 2. **Install poetry** 
 

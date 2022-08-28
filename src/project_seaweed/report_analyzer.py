@@ -2,11 +2,13 @@
 
 import requests
 import difflib
+import os
 
+repo_owner=os.environ.get("REPO_OWNER", default='coreruleset')
 
-file_url: str = "https://raw.githubusercontent.com/vandanrohatgi/Seaweed-Reports/main/{}/{}Artifact/{}Analysis.yaml"
+file_url: str = "https://raw.githubusercontent.com/{}/Seaweed-Reports/main/{}/{}Artifact/{}Analysis.yaml"
 latest_scan: str = (
-    "https://raw.githubusercontent.com/vandanrohatgi/Seaweed-Reports/main/latest.txt"
+    "https://raw.githubusercontent.com/{}/Seaweed-Reports/main/latest.txt"
 )
 
 
@@ -16,7 +18,7 @@ def fetch_latest_test() -> str:
     Returns:
         str: directory where the latest test results are stored
     """
-    response: str = requests.get(latest_scan)
+    response: str = requests.get(latest_scan.format(repo_owner))
     dir: str = response.text.strip()
     return dir
 
@@ -34,8 +36,8 @@ def analyze(date1: str = "", date2: str = "", tag: str = "") -> None:
     if date1 == "latest":
         date1 = fetch_latest_test()
 
-    response1: str = requests.get(file_url.format(date1, tag, tag)).text
-    response2: str = requests.get(file_url.format(date2, tag, tag)).text
+    response1: str = requests.get(file_url.format(repo_owner,date1, tag, tag)).text
+    response2: str = requests.get(file_url.format(repo_owner,date2, tag, tag)).text
 
     for line in difflib.unified_diff(
         response2.split("\n"),

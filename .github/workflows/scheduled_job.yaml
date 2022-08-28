@@ -5,8 +5,10 @@ on:
   - cron: "0 12 * * SUN"
   workflow_dispatch:
 
+env:
+  REPO_OWNER: ${{ github.repository_owner }}
+
 jobs:
-  
   Project-runner:
     strategy:
       matrix:
@@ -93,7 +95,7 @@ jobs:
     - name: fetch repo
       uses: actions/checkout@v3
       with:
-        repository: vandanrohatgi/Seaweed-Reports
+        repository: ${{ env.REPO_OWNER }}/Seaweed-Reports
         token: ${{ secrets.GAT }}
     
     - name: set env
@@ -127,7 +129,7 @@ jobs:
     - name: fetch repo
       uses: actions/checkout@v3
       with:
-        repository: vandanrohatgi/Seaweed-Reports
+        repository: ${{ env.REPO_OWNER }}/Seaweed-Reports
         token: ${{ secrets.GAT }}
     
     - name: set target directory
