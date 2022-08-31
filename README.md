@@ -1,23 +1,12 @@
-# Project Seaweed
+## GSoC meet #12 Summary
 
-[![Tests](https://github.com/coreruleset/Project-Seaweed/workflows/Tests/badge.svg)](https://github.com/coreruleset/Project-Seaweed/actions?workflow=Tests)
-
-## GSoC meet #11 Summary
-
-
-Reviewed the report comparison and slack integration. While they leave a lot of room to be desired, we will be focusing more on documentation and tests since we are approaching the end of GSoC. Added the feature to extract audit.log files after testing is done. 
+Decided to move the project and components to CRS org. After which testing is needed to be performed for the whole project and slack integration. For submission to GSoC we need a URL which hosts a pdf or blog outining the work done and work remaining. 
 
 Tasks for the week:
 
-1. ~~Fix tests github action~~
-2. ~~Add Open source license~~
-3. ~~Work on tests and documentation~~
-
-doubts:
-
-1. Stable place for the project (personal or crs org?)
-2. After the place is decided we can move on to integrating readthedocs to host documentation
-3. project report (pdf, blog, or github readme)
+1. Work on GSoC work report
+2. Fix / improve any code or documentation as needed
+3. Test working of the project after switching the project to CRS org
 
 Notes:
 
@@ -27,60 +16,116 @@ To find unique tags in nuclei templates:
 
 Nuclei identifies HTTP based CVEs using the `requests` keyword in the templates.
 
-## Fetching CRS logs from the container
 
-This project does not provide the functionality to fetch the logs from CRS container. However, you can use the `--keep-setup` flag to prevent auto-removal of the docker setup (crs container, apache container and docker network). After that, you can fetch the audit logs using the following command.
+# Project Seaweed
 
-`docker cp crs-waf:/root/audit.log <path to save log file>`
+![](/images/seaweed.png 250x250)
 
-**Caveat**: If you specify `--keep-setup`, you are responsible for performing the cleanup activity. To do that, just enter the following commands.
+<sub><sup>image: Flaticon.com</sup></sub>
 
-`docker stop crs-waf`
+Project Seaweed is a part of **Google Summer of Code 2022** under the OWASP Foundation Core Rule Set team. Under the guidance of [Felipe Zipitría](https://github.com/fzipi).
 
-`docker stop httpd-server`
+Seaweed is fully customizable CI/CD friendly tool created to automate the testing of web application firewalls against various CVE(s) so that you don't have to. 
 
-`docker network rm seaweed-network`
+It does so by utilising the PoCs provided by nuclei-templates from team Project Discovery. Using these beautifully formatted yaml templates we can test firewalls as well as generate metadata for the firewall testing process. At the end of testing we receive a small summary notification in the form of a slack message.
 
-## Installation
+## Features
 
-1. **Clone the repository**
+1. **Parameters**
 
-`git clone https://github.com/coreruleset/Project-Seaweed.git`
+There are two ways to modify the tool behaviour. You can either use the CLI flags or specify environment variables.
 
-2. **Install poetry** 
+![](images/cli.png)
 
-Poetry is a tool for dependency management and packaging in Python. 
+### Environment variables
 
-[https://python-poetry.org/docs/#installation](https://python-poetry.org/docs/#installation)
+Variable     | Default  | Description
+---|---|---
+WAF_IMAGE | owasp/modsecurity-crs:apache | Docker image to use for firewall setup
+WEB_SERVER_IMAGE | httpd:latest| Docker image to use for web server setup
+WAF_NAME |crs-waf| Docker container name for the firewall
+WEB_SERVER_NAME |httpd-server| Docker container name for the web server
+NETWORK_NAME | seaweed-network|Name of docker network
+NUCLEI_THREADS | 10 |Speed of testing (higher threads lead to poor testing)
+CVE_ID| None | CVE IDs to test
+WAF_URL | None | Firewall URL if not setting up local docker
+OUT_DIR | /tmp | Raw request / response output from nuclei
+FULL_REPORT | False | Include blocked CVEs in the report
+KEEP_SETUP | False | Keep the local docker setup (Usually for extracting audit logs from container)
+OUT_FILE | report.json | name and path of the output report
+TAG | None | Attack types to test (XSS, SQLi, RCE ...)
+FORMAT | json | Report format
+REPO_OWNER | None | Needed for working in a CI/CD environment
 
-3. **Install docker**
+2. **Docker Setup**
 
-This project needs docker to setup a local web server, web application firewall. If you're using a custom waf URL for testing, then docker is not needed. 
+By default, a docker setup containing of Modsec-CRS reverse proxy container (Firewall) and an apache web server container is created and both the containers are attached to a network. This was done to have a local firewall setup. This has 2 advantages:
 
-[https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
+- Removes network latency and hence quicker testing
+- Doesn't disturb the remote firewall
 
-5. **Install Nuclei**
+Ofcourse, this behaviour can be changed and you can specify a remote URL and avaoid setting up the local docker setup.
 
-The program uses Nuclei to launch attacks. Make sure nuclei is in the path and nuclei templates are installed in the home directory and not a custom directory. Install from here: [https://nuclei.projectdiscovery.io/nuclei/get-started/#nuclei-installation](https://nuclei.projectdiscovery.io/nuclei/get-started/#nuclei-installation)
+This feature was achieved using docker-python SDK.
 
-6. **Select Python version**
+3. **Report generation**
 
-The project is tested on Python `3.9.13`. If you have multiple python versions installed, use the following command:
+After Nuclei has finished launching the attacks on the firewall, we store the requests and responses that were made. You can specify a directory if you want to see this raw data, otherwise it is stored inside a temporary directory. 
 
-`poetry env use 3.9`
+We then use this data to figure out if the CVE is blocked or not. If the attack is multi-staged we calculate how much of the attack was blocked (blocked requests / total requests). Based on this a report is generated. 
 
-7. **Install the project**
+You can specify the report format to be either `csv` or `json`.
 
-`poetry install`
+![](/images/report.png)
 
-8. **Finally run the project**
+4. **Testing analysis**
 
-`poetry run project-seaweed`
+Throughout the whole process a `yaml` file is maintained which records various metrics and metadata such as blocked CVE(s), version of firewall used, environment variables etc. This file is then later used for comparing the results of two various scans.
 
-9. **Get help**
+![](/images/analysis.png)
 
-`poetry run project-seaweed --help`
+5. **Scan History**
 
-For command specific help
+If you're using the tool in a CI/CD environment like Github Actions, a repository named `seaweed-reports` is needed which records all the past scans and their respective artifacts. The github action tests varous types of common web CVE(s) such as xss, rce, sqli etc. along with a full test of all the available CVE(s) in the nuclei templates. You can modify this behaviour according to the needs by changing the matrix of Github Action.
 
-`poetry run project-seaweed tester --help`
+The Directory structure looks like this:
+
+```
+Seaweed-Reports/
+├── 2022
+│   └── Aug
+│       ├── 23
+│       │   ├── rce-artifact
+│       │   │   ├── rceAnalysis.yaml
+│       │   │   └── rceReport.csv
+│       │   ├── sqli-artifact
+│       │   │   ├── sqliAnalysis.yaml
+│       │   │   └── sqliReport.csv
+│       └── 28
+│           ├── rceArtifact
+│           │   ├── rceAnalysis.yaml
+│           │   └── rceReport.csv
+│           ├── sqliArtifact
+│           │   ├── sqliAnalysis.yaml
+│           │   └── sqliReport.csv
+└── latest.txt
+```
+
+6. **Slack integration**
+
+After the testing is finished, a message is sent to the defined channelon slack with a small summary.
+
+7. **Report comparison**
+
+8. **Fetching testing logs**
+
+To gain a deeper insight, we also fetch the logs from the firewall. We do this by copying the audit.log file from modsec-crs container. 
+
+
+## Post GSoC work
+
+1. The slack integration present in the github action can be integrated with the report comparison feature. Report comparison only prints the output, so it should have the feature to push comparison output to a file or slack message.
+
+2. More test coverage. Currently at 90%.
+
+3. Improve documentation and fix code (bugs) as needed.
