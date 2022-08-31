@@ -6,9 +6,9 @@ import os
 
 repo_owner=os.environ.get("REPO_OWNER", default='coreruleset')
 
-file_url: str = "https://raw.githubusercontent.com/{}/Seaweed-Reports/main/{}/{}Artifact/{}Analysis.yaml"
+file_url: str = "https://raw.githubusercontent.com/{}/seaweed-reports/main/{}/{}Artifact/{}Analysis.yaml"
 latest_scan: str = (
-    "https://raw.githubusercontent.com/{}/Seaweed-Reports/main/latest.txt"
+    "https://raw.githubusercontent.com/{}/seaweed-reports/main/latest.txt"
 )
 
 

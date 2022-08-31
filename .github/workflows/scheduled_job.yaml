@@ -95,7 +95,7 @@ jobs:
     - name: fetch repo
       uses: actions/checkout@v3
       with:
-        repository: ${{ env.REPO_OWNER }}/Seaweed-Reports
+        repository: ${{ env.REPO_OWNER }}/seaweed-reports
         token: ${{ secrets.GAT }}
     
     - name: set env
@@ -129,7 +129,7 @@ jobs:
     - name: fetch repo
       uses: actions/checkout@v3
       with:
-        repository: ${{ env.REPO_OWNER }}/Seaweed-Reports
+        repository: ${{ env.REPO_OWNER }}/seaweed-reports
         token: ${{ secrets.GAT }}
     
     - name: set target directory
