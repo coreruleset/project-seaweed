@@ -4,9 +4,14 @@ Decided to move the project and components to CRS org. After which testing is ne
 
 Tasks for the week:
 
-1. Work on GSoC work report
+1. ~~Work on GSoC work report~~
 2. Fix / improve any code or documentation as needed
 3. Test working of the project after switching the project to CRS org
+
+doubts:
+- remove uneeded files like map.md, docker-compose.yml?
+- Need Github access toekn to perform testing
+- Dedicated slack channel for reports
 
 Notes:
 
@@ -17,17 +22,21 @@ To find unique tags in nuclei templates:
 Nuclei identifies HTTP based CVEs using the `requests` keyword in the templates.
 
 
-# Project Seaweed
-
-![](/images/seaweed.png 250x250)
+<h1 align="center">
+Project Seaweed
+<br>
+<img src="images/seaweed.png" width="100px" alt="Seaweed">
+</h1>
 
 <sub><sup>image: Flaticon.com</sup></sub>
 
+[![Tests](https://github.com/coreruleset/Project-Seaweed/workflows/Tests/badge.svg)](https://github.com/coreruleset/Project-Seaweed/actions?workflow=Tests)
+
 Project Seaweed is a part of **Google Summer of Code 2022** under the OWASP Foundation Core Rule Set team. Under the guidance of [Felipe Zipitría](https://github.com/fzipi).
 
-Seaweed is fully customizable CI/CD friendly tool created to automate the testing of web application firewalls against various CVE(s) so that you don't have to. 
+Seaweed is fully customizable CI/CD friendly tool created to automate the testing of web application firewalls against various CVE(s). 
 
-It does so by utilising the PoCs provided by nuclei-templates from team Project Discovery. Using these beautifully formatted yaml templates we can test firewalls as well as generate metadata for the firewall testing process. At the end of testing we receive a small summary notification in the form of a slack message.
+It does so by utilising the PoCs provided by [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates) from team [Project Discovery](https://github.com/projectdiscovery). Using these beautifully formatted yaml templates we can test firewalls as well as generate metadata for the firewall testing process. At the end of testing we receive a small summary notification in the form of a slack message.
 
 ## Features
 
@@ -35,9 +44,11 @@ It does so by utilising the PoCs provided by nuclei-templates from team Project 
 
 There are two ways to modify the tool behaviour. You can either use the CLI flags or specify environment variables.
 
+**CLI:**
+
 ![](images/cli.png)
 
-### Environment variables
+**Environment variables:**
 
 Variable     | Default  | Description
 ---|---|---
@@ -57,6 +68,11 @@ TAG | None | Attack types to test (XSS, SQLi, RCE ...)
 FORMAT | json | Report format
 REPO_OWNER | None | Needed for working in a CI/CD environment
 
+Commits:
+- 6a1010eaad469a7992f119046fdf5561d98eba53
+- f19772a72f35eda2728979d37361353729e2376c
+- fd729f9838fd1d5590858c1bc04f4467e6869236
+
 2. **Docker Setup**
 
 By default, a docker setup containing of Modsec-CRS reverse proxy container (Firewall) and an apache web server container is created and both the containers are attached to a network. This was done to have a local firewall setup. This has 2 advantages:
@@ -64,9 +80,15 @@ By default, a docker setup containing of Modsec-CRS reverse proxy container (Fir
 - Removes network latency and hence quicker testing
 - Doesn't disturb the remote firewall
 
-Ofcourse, this behaviour can be changed and you can specify a remote URL and avaoid setting up the local docker setup.
+Ofcourse, this behaviour can be changed and you can specify a remote URL and avoid setting up the local docker setup.
 
 This feature was achieved using docker-python SDK.
+
+Commits:
+- f0bfb2b54a886cfdd438427f6b342a31159601ef
+- f19772a72f35eda2728979d37361353729e2376c
+- af5848e5dfa96f943e93a6812a070ae72357c7e5
+
 
 3. **Report generation**
 
@@ -78,17 +100,28 @@ You can specify the report format to be either `csv` or `json`.
 
 ![](/images/report.png)
 
+Commits:
+- 6162174081bb9fda1b8a5947ae33114e5f3c038a
+- 400307edcad3505671ea7182249299aeb25a0a2c
+- a45ec2cc116c6529e77046c0798dee82e05164f4
+
 4. **Testing analysis**
 
 Throughout the whole process a `yaml` file is maintained which records various metrics and metadata such as blocked CVE(s), version of firewall used, environment variables etc. This file is then later used for comparing the results of two various scans.
 
 ![](/images/analysis.png)
 
+
+Commits:
+- 4695e817cc33ff67d3b746b236a838cb1e700088
+- 9567995277f4c028059d40900eb0b0fd9fd2c6bb
+
+
 5. **Scan History**
 
-If you're using the tool in a CI/CD environment like Github Actions, a repository named `seaweed-reports` is needed which records all the past scans and their respective artifacts. The github action tests varous types of common web CVE(s) such as xss, rce, sqli etc. along with a full test of all the available CVE(s) in the nuclei templates. You can modify this behaviour according to the needs by changing the matrix of Github Action.
+If you're using the tool in a CI/CD environment like Github Actions, a repository named `seaweed-reports` is needed which records all the past scans and their respective artifacts. The github action tests various types of common web CVE(s) such as xss, rce, sqli etc. along with a full test of all the available CVE(s) in the nuclei templates. You can modify this behaviour according to the needs by changing the matrix of Github Action.
 
-The Directory structure looks like this:
+The directory structure looks like this:
 
 ```
 Seaweed-Reports/
@@ -111,16 +144,46 @@ Seaweed-Reports/
 └── latest.txt
 ```
 
+Commits:
+- f2ffc7687c27b5eb21cfb557fb30890195293369
+- 3bcc3d13fb87dfeeacc5342caa04b3d5b94566da
+
 6. **Slack integration**
 
-After the testing is finished, a message is sent to the defined channelon slack with a small summary.
+After the testing is finished, a message is sent to the defined channel on slack with a small summary.
+
+![](/images/slack.png)
+
+Commits:
+- 7fdfac397e9ba5e6925577264c5cffcc9106fc20
+- 973cf52b3830e6c85d2e46a884a34dac9c62350f
 
 7. **Report comparison**
 
+If running this tool in a local environment, you can use this feature to compare two different reports.
+
+![](/images/compare.png)
+
+Commits:
+- 4695e817cc33ff67d3b746b236a838cb1e700088
+- 7fef82af890818a09239f02c910c42365761fa14
+
 8. **Fetching testing logs**
 
-To gain a deeper insight, we also fetch the logs from the firewall. We do this by copying the audit.log file from modsec-crs container. 
+This project does not provide the functionality to automatically fetch the logs from CRS container. However, you can use the `--keep-setup` flag to prevent auto-removal of the docker setup (crs container, apache container and docker network). After that, you can fetch the audit logs using the following command.
 
+`docker cp crs-waf:/root/audit.log <path to save log file>`
+
+**Caveat**: If you specify `--keep-setup`, you are responsible for performing the cleanup activity. To do that, just enter the following commands.
+
+`docker stop crs-waf`
+
+`docker stop httpd-server`
+
+`docker network rm seaweed-network`
+
+Commits:
+- 64a8aefae60232bc6843a52abfd261b1ab78a721
 
 ## Post GSoC work
 
@@ -129,3 +192,44 @@ To gain a deeper insight, we also fetch the logs from the firewall. We do this b
 2. More test coverage. Currently at 90%.
 
 3. Improve documentation and fix code (bugs) as needed.
+
+## Usage
+
+**Installation**
+
+1. **Clone the repository**
+
+`git clone https://github.com/coreruleset/Project-Seaweed.git`
+
+2. **Install poetry** 
+
+Poetry is a tool for dependency management and packaging in Python. 
+
+[https://python-poetry.org/docs/#installation](https://python-poetry.org/docs/#installation)
+
+3. **Install docker**
+
+This project needs docker to setup a local web server, web application firewall. If you're using a custom waf URL for testing, then docker is not needed. 
+
+[https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
+
+5. **Install Nuclei**
+
+The program uses Nuclei to launch attacks. Make sure nuclei is in the path and nuclei templates are installed in the home directory and not a custom directory. Install from here: [https://nuclei.projectdiscovery.io/nuclei/get-started/#nuclei-installation](https://nuclei.projectdiscovery.io/nuclei/get-started/#nuclei-installation)
+
+
+6. **Install the project**
+
+`poetry install`
+
+7. **Finally run the project**
+
+`poetry run project-seaweed`
+
+8. **Get help**
+
+`poetry run project-seaweed --help`
+
+For command specific help
+
+`poetry run project-seaweed tester --help`
