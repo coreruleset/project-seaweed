@@ -12,7 +12,7 @@ jobs:
   Project-runner:
     strategy:
       matrix:
-        tag: [lfi, xxe]
+        tag: [xxe]
     name: Project runner
     env:
       TAG: ${{ matrix.tag }}
@@ -98,6 +98,7 @@ jobs:
         repository: ${{ env.REPO_OWNER }}/seaweed-reports
         ssh-key: ${{ secrets.SSH_KEY }}
         persist-credentials: true
+        ssh-strict: false
     
     - name: set env
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
