@@ -12,7 +12,7 @@ jobs:
   Project-runner:
     strategy:
       matrix:
-        tag: [lfi, xss, fileupload, xxe, injection, traversal, disclosure, auth-bypass, ssrf, sqli, oast, rce, '']
+        tag: [lfi, xxe]
     name: Project runner
     env:
       TAG: ${{ matrix.tag }}
@@ -96,7 +96,8 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: ${{ env.REPO_OWNER }}/seaweed-reports
-        token: ${{ secrets.GAT }}
+        ssh-key: ${{ secrets.SSH_KEY }}
+        persist-credentials: true
     
     - name: set env
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
@@ -130,7 +131,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: ${{ env.REPO_OWNER }}/seaweed-reports
-        token: ${{ secrets.GAT }}
     
     - name: set target directory
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
