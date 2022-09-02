@@ -38,7 +38,7 @@ Seaweed is fully customizable CI/CD friendly tool created to automate the testin
 
 It does so by utilising the PoCs provided by [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates) from team [Project Discovery](https://github.com/projectdiscovery). Using these beautifully formatted yaml templates we can test firewalls as well as generate metadata for the firewall testing process. At the end of testing we receive a small summary notification in the form of a slack message.
 
-![](/images/flow_chart_seaweed.png)
+![](/images/flowchart_white_back.drawio.png)
 
 
 ## Features
