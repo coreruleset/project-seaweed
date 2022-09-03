@@ -98,8 +98,12 @@ jobs:
         repository: ${{ env.REPO_OWNER }}/seaweed-reports
         ssh-key: ${{ secrets.SSH_KEY }}
         persist-credentials: true
-        ssh-strict: false
-    
+
+    - name: setup ssh
+      uses: webfactory/ssh-agent@v0.5.4
+      with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
     - name: set env
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
     
@@ -118,7 +122,6 @@ jobs:
       run: |
          git config user.name github-actions
          git config user.email github-actions@github.com
-         git remote set-url origin git@github.com:${{ env.REPO_OWNER }}/seaweed-reports.git
          git add .
          git diff --quiet && git diff --staged --quiet || git commit -m"Add reports & update latest.txt"
          git push
