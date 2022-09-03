@@ -96,13 +96,8 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: ${{ env.REPO_OWNER }}/seaweed-reports
-        ssh-key: ${{ secrets.SSH_KEY }}
+        ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
         persist-credentials: true
-
-    - name: setup ssh
-      uses: webfactory/ssh-agent@v0.5.4
-      with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
 
     - name: set env
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
