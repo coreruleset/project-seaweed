@@ -1,27 +1,3 @@
-## GSoC meet #12 Summary
-
-Decided to move the project and components to CRS org. After which testing is needed to be performed for the whole project and slack integration. For submission to GSoC we need a URL which hosts a pdf or blog outining the work done and work remaining. 
-
-Tasks for the week:
-
-1. ~~Work on GSoC work report~~
-2. Fix / improve any code or documentation as needed
-3. Test working of the project after switching the project to CRS org
-
-doubts:
-- remove uneeded files like map.md, docker-compose.yml?
-- Need Github access token to perform testing
-- Dedicated slack channel for reports
-
-Notes:
-
-To find unique tags in nuclei templates:
-
-`grep "tags" -r . | cut -d":" -f3 | sed 's/,/\n/g' | sed 's/ //g' | sort | uniq -c | sort -n`
-
-Nuclei identifies HTTP based CVEs using the `requests` keyword in the templates.
-
-
 <h1 align="center">
 Project Seaweed
 <br>
