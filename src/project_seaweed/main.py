@@ -198,7 +198,7 @@ def extract_payload(url: str) -> None:
 @click.option(
     "-d2", "--date2", help="Secondary report date for comparison. Ex: 2022/Aug/15"
 )
-@click.option("-t", "--tag", help="Type of report (attack type)")
+@click.option("-t", "--tag", default="", help="Type of report (attack type)")
 @click.command
 def analyzer(date1: str, date2: str, tag: str) -> None:
     analyze(date1=date1, date2=date2, tag=tag)
