@@ -32,9 +32,9 @@ jobs:
         architecture: x64
     
     - name: Install nuclei
-      # fetch latest nuclei binary, unzip and add to path
+      # fetch nuclei v2.7.7 binary, unzip and add to path
       run: |
-        curl https://github.com/projectdiscovery/nuclei/releases/latest -s -L | egrep -o "/projectdiscovery/nuclei/releases/download/v[0-9]\.[0-9]\.[0-9]/nuclei_[0-9]\.[0-9]\.[0-9]_linux_amd64.zip" | wget --base=https://github.com -i -
+        wget https://github.com/projectdiscovery/nuclei/releases/download/v2.7.7/nuclei_2.7.7_linux_amd64.zip
         unzip nuclei*.zip
         echo "$PWD" >> $GITHUB_PATH
     
