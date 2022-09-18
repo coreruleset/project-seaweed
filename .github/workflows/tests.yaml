@@ -2,8 +2,8 @@ name: Tests
 on: 
   push:
     paths:
-      - 'src/*'
-      - 'tests/*'
+      - 'src/**'
+      - 'tests/**'
 jobs:
   tests:
 
