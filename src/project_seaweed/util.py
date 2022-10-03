@@ -44,8 +44,12 @@ def parse_template(cve: str) -> Dict:
     """
     year = cve.split("-")[1]
     file_path = f"{home_dir}/nuclei-templates/cves/{year}/{cve}.yaml"
-    with open(file_path, "r") as f:
-        data = yaml.load(f, Loader=yaml.SafeLoader)["info"]
+    try:
+        with open(file_path, "r") as f:
+            data = yaml.load(f, Loader=yaml.SafeLoader)["info"]
+    except FileNotFoundError:
+        logging.debug(f"cve template  path '{file_path}' was not found!")
+        data = {}
     return {
         "name": data.get("name", "None"),
         "severity": data.get("severity", "None"),
