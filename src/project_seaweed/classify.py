@@ -9,18 +9,20 @@ from project_seaweed.util import parse_template, printer, update_analysis
 
 class Classifier:
     """
-    Consists of function to handle false negative classification by going through nuclei response codes.
+    Consists of function to handle false negative classification
+    by going through nuclei response codes.
 
     Args:
         dir: path to directory where nuclei responses are stored.
-        format: foramt for the report (json | csv)
+        format: format for the report (json | csv)
         out_file: file path for the report
-        full_report: Include all tested CVE details. Includes CVEs that were blocked. Report only reflects
-                     unblocked or partially blocked CVEs by default.
+        full_report: Include all tested CVE details. Includes CVEs that were blocked.
+                    Report only reflects
+                    unblocked or partially blocked CVEs by default.
     """
 
     def __init__(
-        self, dir: str, format: str, out_file: str, full_report: bool = False
+        self, dir: str, format: str, out_file: str, full_report: bool = False, tags: str = ""
     ) -> None:
         self.dir = f"{dir}/http/"
         self.full_report = full_report
@@ -30,7 +32,10 @@ class Classifier:
         self.request_regex = re.compile(r"HTTP\/1\.1\s\d{3}")
         self.cve_regex = re.compile(r"(CVE-\d{4}-\d{1,})")
         self.cve_file_regex = re.compile(r"(CVE_\d{4}_\d{1,})")
-        self.report = Report(format=format, out_file=out_file)
+        self.attack_objects: dict = {}
+        self.tags=tags.split(",")
+        for tag in self.tags:
+            self.attack_objects[tag]=Report(format=format, out_file=out_file,tag=tag)
 
     def find_block_type(self, data: str) -> str:
         """find if an attack was blocked, not blocked or partially blocked
@@ -59,7 +64,7 @@ class Classifier:
         """
         Read contents of the directory, file by file and call false-negative classification on each file.
 
-        Generates a report file after classfication process.
+        Generates a report file after classification process.
         """
         blocks: int = 0
         non_blocks: int = 0
@@ -77,7 +82,8 @@ class Classifier:
 
         for file in files:
             with open(f"{self.dir}{file}", "rb") as f:
-                # ignore all weird characters that may be found in an attack. We only need the response codes.
+                # ignore all weird characters that may be found in an attack.
+                # We only need the response codes.
                 data: str = f.read().decode("utf-8", errors="ignore")
 
             cve: str = re.search(self.cve_regex, data).group(0)
@@ -87,23 +93,29 @@ class Classifier:
             if block_status == "Blocked":
                 blocks += 1
                 if self.full_report is False:
-                    continue  # if full report is not needed then, skip results where attack was blocked.(Unblocked attacks are more interesting)
+                    continue  # if full report is not needed then, skip results where attack was blocked.
+                            #(Unblocked attacks are more interesting)
             elif block_status == "Not Blocked":
                 non_blocks += 1
             else:
                 partial_blocks += 1
 
-            self.report.add_data(
-                cve_details(
-                    cve=cve,
-                    blocked=block_status,
-                    **parse_template(cve),
-                )
-            )
+            cve_data=parse_template(cve)
+
+            for tag in self.tags:
+                if tag in cve_data['tags']:
+                    self.attack_objects[tag].add_data(
+                            cve_details(
+                                cve=cve,
+                                blocked=block_status,
+                                **cve_data,
+                            )
+                        )
 
         update_analysis(
             blocks=blocks, non_blocks=non_blocks, partial_blocks=partial_blocks
         )
 
         printer("Generating report...")
-        self.report.gen_file()
+        for attack_report in self.attack_objects:
+            attack_report.gen_file()

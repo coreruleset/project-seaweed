@@ -46,6 +46,7 @@ class Cve_tester:
         waf_url: Optional[str] = None,
         tag: Optional[str] = None,
         keep_setup: bool = False,
+        include_all: bool = False
     ) -> None:
         if waf_url is None:
             logging.info("Initializing modsec-crs setup")
@@ -82,7 +83,10 @@ class Cve_tester:
         self.temp_dir: str = directory or tempfile.mkdtemp()
         self.cve_id: List = cve_id or []
         self.client = docker.APIClient()
-        self.tag: List = ["-tags", tag] if tag is not None else []
+        if include_all or tag is None:
+            self.tag: List = []
+        else:
+            self.tags: List = ["-tags", tag]
         logging.debug(self.__dict__)
 
     def create_crs(self) -> None:

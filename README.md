@@ -43,7 +43,7 @@ OUT_DIR | /tmp | Raw request / response output from nuclei
 FULL_REPORT | False | Include blocked CVEs in the report
 KEEP_SETUP | False | Keep the local docker setup (Usually for extracting audit logs from container)
 OUT_FILE | report.json | name and path of the output report
-TAG | None | Attack types to test (XSS, SQLi, RCE ...)
+TAG | All | Attack types to test ('lfi', 'xss', 'fileupload', 'xxe', 'injection', 'traversal', 'disclosure', 'auth-bypass', 'ssrf', 'sqli', 'oast', 'rce')
 FORMAT | json | Report format
 REPO_OWNER | None | Needed for working in a CI/CD environment
 

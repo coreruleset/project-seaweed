@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from project_seaweed import __version__
 from project_seaweed.classify import Classifier
 from project_seaweed.cve_tester import Cve_tester
-from project_seaweed.extract_payload import extract
 from project_seaweed.util import update_analysis
 from project_seaweed.report_analyzer import analyze
 
@@ -83,22 +82,14 @@ def main(level: str) -> None:
 @click.option(
     "--tag",
     required=False,
-    type=click.Choice(
-        [
-            "lfi",
-            "xss",
-            "fileupload",
-            "xxe",
-            "injection",
-            "traversal",
-            "disclosure",
-            "auth-bypass",
-            "ssrf",
-            "sqli",
-            "oast",
-            "rce",
-        ]
-    ),
+    help="'lfi', 'xss', 'fileupload', 'xxe', 'injection', 'traversal', 'disclosure', 'auth-bypass', 'ssrf', 'sqli', 'oast', 'rce'"
+)
+@click.option(
+    "--include-all",
+    "include_all",
+    is_flag=True,
+    required=False,
+    help="Generate a report with all CVEs with specified attacks"
 )
 @click.command()
 def tester(
@@ -110,6 +101,7 @@ def tester(
     format: str,
     tag: str,
     keep_setup: bool,
+    include_all: bool
 ) -> None:
     """Trigger CVE testing process
     \f
@@ -121,9 +113,10 @@ def tester(
         directory: specify directory to store program output
         full_report: Boolean flag to include all tested CVE data in the report. Report only includes Unblocked / Partially blocked CVE data.
         out_file: name for the report file
-        tag: comma separated values for type of attack to test
+        tag: comma separated values for type of attack to test ('lfi', 'xss', 'fileupload', 'xxe', 'injection', 'traversal', 'disclosure', 'auth-bypass', 'ssrf', 'sqli', 'oast', 'rce')
         format: format for the report
-        keep_setup: Boolena flag to retain docker setup
+        keep_setup: Boolean flag to retain docker setup
+        include_all: Boolean Generate a report with all CVEs with specified attacks
     """
 
     cve_id = os.environ.get(
@@ -151,6 +144,9 @@ def tester(
     format = os.environ.get("FORMAT", default=format)
     format = format if bool(format) else None
 
+    include_all = bool(os.environ.get("INCLUDE_ALL", default=include_all))
+
+
     update_analysis(
         date=datetime.now(timezone.utc).strftime("%d %b %Y"),
         time=datetime.now(timezone.utc).strftime("%H:%M:%S UTC"),
@@ -164,11 +160,11 @@ def tester(
         directory=directory,
         waf_url=waf_url,
         tag=tag,
-        keep_setup=keep_setup,
+        keep_setup=keep_setup
     )
     result_directory = test.generate_raw()
     classify = Classifier(
-        dir=result_directory, format=format, out_file=out_file, full_report=full_report
+        dir=result_directory, format=format, out_file=out_file, full_report=full_report, tags=tag
     )
     classify.reader()
 
@@ -181,12 +177,6 @@ def tester(
         out_file=out_file,
         format=format,
     )
-
-
-@click.option("-u", "--url", help="Url where PoC is hosted")
-@click.command
-def extract_payload(url: str) -> None:
-    extract(url=url)
 
 
 @click.option(

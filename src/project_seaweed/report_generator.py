@@ -23,7 +23,7 @@ class cve_details:
         """Generate a dictionary from CVE details
 
         Returns:
-            OrderedDict: returns an ordered dictionarry to maintin order of insertion of data
+            OrderedDict: returns an ordered dictionary to maintain order of insertion of data
         """
         custom_dict = OrderedDict()
         custom_dict["cve"] = self.cve
@@ -47,14 +47,15 @@ class Report:
         out_file: Name of the file to be generated. Also used for path of generated file.
     """
 
-    def __init__(self, format: str = "json", out_file: str = None) -> None:
+    def __init__(self, format: str = "json", out_file: str = None,tag: str = "") -> None:
         self.format: str = format
         if out_file is None:
-            self.out_file: str = f"{os.getcwd()}/report.{format}"
+            self.out_file: str = f"{os.getcwd()}/{tag}_report.{format}"
             logging.info("Report saved at:" + self.out_file)
         else:
             self.out_file: str = out_file
         self.data: List[cve_details] = []
+        self.tag=tag
 
     def add_data(self, data: cve_details) -> None:
         """Add cve_details object to a list"""
@@ -75,7 +76,7 @@ class Report:
                 writer = csv.writer(f)
 
                 writer.writerow(
-                    [field for field in self.data[0].keys()]
+                    list(self.data[0].keys())
                 )  # write field names at the top of csv using first element
 
                 for row in self.data:
