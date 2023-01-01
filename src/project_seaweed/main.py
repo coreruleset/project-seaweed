@@ -82,7 +82,7 @@ def main(level: str) -> None:
 @click.option(
     "--tag",
     required=False,
-    help="'lfi', 'xss', 'fileupload', 'xxe', 'injection', 'traversal', 'disclosure', 'auth-bypass', 'ssrf', 'sqli', 'oast', 'rce'"
+    help="lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
 )
 @click.option(
     "--include-all",
@@ -160,11 +160,12 @@ def tester(
         directory=directory,
         waf_url=waf_url,
         tag=tag,
-        keep_setup=keep_setup
+        keep_setup=keep_setup,
+        include_all=include_all
     )
     result_directory = test.generate_raw()
     classify = Classifier(
-        dir=result_directory, format=format, out_file=out_file, full_report=full_report, tags=tag
+        dir=result_directory, format=format, out_file=out_file, full_report=full_report, tags=tag, include_all=include_all
     )
     classify.reader()
 

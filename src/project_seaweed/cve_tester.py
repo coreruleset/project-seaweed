@@ -86,7 +86,7 @@ class Cve_tester:
         if include_all or tag is None:
             self.tag: List = []
         else:
-            self.tags: List = ["-tags", tag]
+            self.tag: List = ["-tags", tag]
         logging.debug(self.__dict__)
 
     def create_crs(self) -> None:

@@ -50,7 +50,7 @@ class Report:
     def __init__(self, format: str = "json", out_file: str = None,tag: str = "") -> None:
         self.format: str = format
         if out_file is None:
-            self.out_file: str = f"{os.getcwd()}/{tag}_report.{format}"
+            self.out_file: str = f"{os.getcwd()}/{tag}Report.{format}"
             logging.info("Report saved at:" + self.out_file)
         else:
             self.out_file: str = out_file

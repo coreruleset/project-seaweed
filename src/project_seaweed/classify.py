@@ -22,10 +22,11 @@ class Classifier:
     """
 
     def __init__(
-        self, dir: str, format: str, out_file: str, full_report: bool = False, tags: str = ""
+        self, dir: str, format: str, out_file: str, full_report: bool = False, tags: str = "", include_all: bool = False
     ) -> None:
         self.dir = f"{dir}/http/"
         self.full_report = full_report
+        self.include_all=include_all
         self.forbidden_regex = re.compile(
             r"HTTP\/1\.1\s403"
         )  # regex for 403 Forbidden responses
@@ -34,6 +35,10 @@ class Classifier:
         self.cve_file_regex = re.compile(r"(CVE_\d{4}_\d{1,})")
         self.attack_objects: dict = {}
         self.tags=tags.split(",")
+
+        if include_all:
+            self.all_report = Report(format=format, out_file=out_file)
+
         for tag in self.tags:
             self.attack_objects[tag]=Report(format=format, out_file=out_file,tag=tag)
 
@@ -102,15 +107,17 @@ class Classifier:
 
             cve_data=parse_template(cve)
 
-            for tag in self.tags:
-                if tag in cve_data['tags']:
-                    self.attack_objects[tag].add_data(
-                            cve_details(
+            cve_data_obj=cve_details(
                                 cve=cve,
                                 blocked=block_status,
                                 **cve_data,
                             )
-                        )
+            if self.include_all:
+                self.all_report.add_data(cve_data_obj)
+
+            for tag in self.tags:
+                if tag in cve_data['tags']:
+                    self.attack_objects[tag].add_data(cve_data_obj)
 
         update_analysis(
             blocks=blocks, non_blocks=non_blocks, partial_blocks=partial_blocks
@@ -118,4 +125,6 @@ class Classifier:
 
         printer("Generating report...")
         for attack_report in self.attack_objects:
-            attack_report.gen_file()
+            self.attack_objects[attack_report].gen_file()
+        
+        self.all_report.gen_file()
