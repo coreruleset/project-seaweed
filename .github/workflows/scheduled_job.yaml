@@ -170,10 +170,6 @@ jobs:
                   {
                     "title": "Status",
                     "value": "Incomplete"
-                  },
-                  {
-                    "title": "Error Message"
-                    "value": ${{ core.error }}
                   }
                 ]
               }
