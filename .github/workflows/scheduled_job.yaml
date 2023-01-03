@@ -23,15 +23,17 @@ jobs:
       uses: actions/checkout@v3
     
     - name: Setup python
-      uses: actions/setup-python@v1
-      with:
+      uses: actions/setup-python@v4
+      inputs:
         python-version: 3.9
         architecture: x64
+        token: ${{ github.token }}
     
     - name: Install nuclei
       # fetch nuclei v2.7.7 binary, unzip and add to path
       run: |
-        wget https://github.com/projectdiscovery/nuclei/releases/download/v2.7.7/nuclei_2.7.7_linux_amd64.zip
+        header='--header=authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'
+        wget "$header" https://github.com/projectdiscovery/nuclei/releases/download/v2.7.7/nuclei_2.7.7_linux_amd64.zip
         unzip nuclei*.zip
         echo "$PWD" >> $GITHUB_PATH
     
