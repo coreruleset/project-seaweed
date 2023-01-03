@@ -24,7 +24,7 @@ jobs:
     
     - name: Setup python
       uses: actions/setup-python@v4
-      inputs:
+      with:
         python-version: 3.9
         architecture: x64
         token: ${{ github.token }}
