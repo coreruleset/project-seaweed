@@ -1,4 +1,12 @@
 #!/usr/bin/python3
 """Project Seaweed (GSoC 2022)"""
+try:
+    from importlib.metadata import version, PackageNotFoundError  # type: ignore
+except ImportError:  # pragma: no cover
+    from importlib_metadata import version, PackageNotFoundError  # type: ignore
 
-__version__ = "2.0.0"
+
+try:
+    __version__ = version(__name__)
+except PackageNotFoundError:  # pragma: no cover
+    __version__ = "unknown"
