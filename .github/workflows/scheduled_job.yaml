@@ -155,7 +155,7 @@ jobs:
   Failure-notification:
     name: send failure message to slack
     runs-on: ubuntu-20.04
-    if: ${{ failure() }}
+    if: ${{ github.action_status == 'failure'}}
     steps:
       - name: Failure slack message
         uses: slackapi/slack-github-action@v1.18.0
@@ -178,5 +178,3 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-
-
