@@ -113,7 +113,7 @@ jobs:
 
         for field in cves_tested blocks non_blocks partial_blocks
         do
-          echo "$field=$(yq .$field analysis.yaml)" >> $GITHUB_ENV
+          echo "$field=$(yq .$field Reports/analysis.yaml)" >> $GITHUB_ENV
         done
 
     - name: Send slack message
