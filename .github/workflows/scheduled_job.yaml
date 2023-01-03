@@ -154,29 +154,29 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
   
-  Failure-notification:
-    name: send failure message to slack
-    runs-on: ubuntu-20.04
-    if: ${{ github.action_status == 'failure'}}
-    steps:
-      - name: Failure slack message
-        uses: slackapi/slack-github-action@v1.18.0
-        with:
-          payload: |
-            {
-            "text": "Seems like Seaweed ran into an error :/",
-            "attachments": [
-              {
-                "color": "c91a23",
-                "fields": [
-                  {
-                    "title": "Status",
-                    "value": "Incomplete"
-                  }
-                ]
-              }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+#  Failure-notification:
+#    name: send failure message to slack
+#    runs-on: ubuntu-20.04
+#    if: ${{ github.action_status == 'failure'}}
+#    steps:
+#      - name: Failure slack message
+#        uses: slackapi/slack-github-action@v1.18.0
+#        with:
+#          payload: |
+#            {
+#            "text": "Seems like Seaweed ran into an error :/",
+#            "attachments": [
+#              {
+#                "color": "c91a23",
+#                "fields": [
+#                  {
+#                    "title": "Status",
+#                    "value": "Incomplete"
+#                  }
+#                ]
+#              }
+#              ]
+#            }
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+#          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
