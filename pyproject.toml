@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "project-seaweed"
-version = "2.1.0"
+version = "2.2.0"
 description = ""
 authors = ["vandanrohatgi <vandanrohatgi@gmail.com>"]
 readme = "README.md"

@@ -91,8 +91,8 @@ jobs:
          git diff --quiet && git diff --staged --quiet || git commit -m"Add reports & update latest.txt"
          git push
   
-  Slack-Update:
-    name: post slack message
+  Extract-info:
+    name: extract data from report
     runs-on: ubuntu-20.04
     needs: [Update-repo]
 
@@ -116,7 +116,17 @@ jobs:
           echo "$field=$(yq .$field Reports/analysis.yaml)" >> $GITHUB_ENV
         done
 
-    - name: Send slack message
+  Slack-notification:
+    name: post slack message
+    runs-on: ubuntu-20.04
+    needs: [Extract-info]
+    if: always()
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    steps:
+    - name: Success
+      if: ${{ jobs.Extract-info.result == 'success' }}
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
@@ -150,33 +160,24 @@ jobs:
             }
             ]
           }
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-  
-#  Failure-notification:
-#    name: send failure message to slack
-#    runs-on: ubuntu-20.04
-#    if: ${{ github.action_status == 'failure'}}
-#    steps:
-#      - name: Failure slack message
-#        uses: slackapi/slack-github-action@v1.18.0
-#        with:
-#          payload: |
-#            {
-#            "text": "Seems like Seaweed ran into an error :/",
-#            "attachments": [
-#              {
-#                "color": "c91a23",
-#                "fields": [
-#                  {
-#                    "title": "Status",
-#                    "value": "Incomplete"
-#                  }
-#                ]
-#              }
-#              ]
-#            }
-#        env:
-#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-#          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    - name: Failure
+      if: ${{ jobs.Project-runner.result != 'success' || jobs.Update-repo.result != 'success' || jobs.Extract-info.result != 'success'}}
+      steps:
+      - name: Failure slack message
+        uses: slackapi/slack-github-action@v1.18.0
+        with:
+          payload: |
+            {
+            "text": "Seems like Seaweed ran into an error :/",
+            "attachments": [
+              {
+                "color": "c91a23",
+                "fields": [
+                  {
+                    "title": "Status",
+                    "value": "Incomplete"
+                  }
+                ]
+              }
+              ]
+            }
