@@ -119,14 +119,14 @@ jobs:
   Slack-notification:
     name: post slack message
     runs-on: ubuntu-20.04
-    needs: [Extract-info]
+    needs: [Project-runner,Update-repo,Extract-info]
     if: always()
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
     steps:
     - name: Success
-      if: ${{ jobs.Extract-info.result == 'success' }}
+      if: ${{ !contains(join(needs.*.result, ','), 'failure') }}
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
@@ -161,7 +161,7 @@ jobs:
             ]
           }
     - name: Failure
-      if: ${{ jobs.Project-runner.result != 'success' || jobs.Update-repo.result != 'success' || jobs.Extract-info.result != 'success'}}
+      if: ${{ contains(join(needs.*.result, ','), 'failure') }}
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
