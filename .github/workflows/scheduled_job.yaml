@@ -162,22 +162,20 @@ jobs:
           }
     - name: Failure
       if: ${{ jobs.Project-runner.result != 'success' || jobs.Update-repo.result != 'success' || jobs.Extract-info.result != 'success'}}
-      steps:
-      - name: Failure slack message
-        uses: slackapi/slack-github-action@v1.18.0
-        with:
-          payload: |
+      uses: slackapi/slack-github-action@v1.18.0
+      with:
+        payload: |
+          {
+          "text": "Seems like Seaweed ran into an error :/",
+          "attachments": [
             {
-            "text": "Seems like Seaweed ran into an error :/",
-            "attachments": [
-              {
-                "color": "c91a23",
-                "fields": [
-                  {
-                    "title": "Status",
-                    "value": "Incomplete"
-                  }
-                ]
-              }
+              "color": "c91a23",
+              "fields": [
+                {
+                  "title": "Status",
+                  "value": "Incomplete"
+                }
               ]
             }
+            ]
+          }
