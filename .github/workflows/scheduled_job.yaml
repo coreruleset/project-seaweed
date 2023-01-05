@@ -95,7 +95,9 @@ jobs:
     name: extract data from report
     runs-on: ubuntu-20.04
     needs: [Update-repo]
-
+    env:
+       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+       SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
     steps:
     - name: fetch repo
       uses: actions/checkout@v3
@@ -104,7 +106,7 @@ jobs:
     
     - name: set target directory
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
-
+    
     - name: extract info
       run: |
         yq() {
@@ -115,18 +117,7 @@ jobs:
         do
           echo "$field=$(yq .$field Reports/analysis.yaml)" >> $GITHUB_ENV
         done
-
-  Slack-notification:
-    name: post slack message
-    runs-on: ubuntu-20.04
-    needs: [Project-runner,Update-repo,Extract-info]
-    if: always()
-    env:
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-    steps:
     - name: Success
-      if: ${{ !contains(join(needs.*.result, ','), 'failure') }}
       uses: slackapi/slack-github-action@v1.18.0
       with:
         payload: |
@@ -160,22 +151,67 @@ jobs:
             }
             ]
           }
-    - name: Failure
-      if: ${{ contains(join(needs.*.result, ','), 'failure') }}
-      uses: slackapi/slack-github-action@v1.18.0
-      with:
-        payload: |
-          {
-          "text": "Seems like Seaweed ran into an error :/",
-          "attachments": [
-            {
-              "color": "c91a23",
-              "fields": [
-                {
-                  "title": "Status",
-                  "value": "Incomplete"
-                }
-              ]
-            }
-            ]
-          }
+
+  # Slack-notification:
+  #   name: post slack message
+  #   runs-on: ubuntu-20.04
+  #   needs: [Project-runner,Update-repo,Extract-info]
+  #   if: always()
+  #   env:
+  #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  #     SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+  #   steps:
+  #   - name: Success
+  #     continue-on-error: true
+  #     uses: slackapi/slack-github-action@v1.18.0
+  #     with:
+  #       payload: |
+  #         {
+  #         "text": "Testing finished!",
+  #         "attachments": [
+  #           {
+  #             "color": "28a745",
+  #             "fields": [
+  #               {
+  #                 "title": "Status",
+  #                 "value": "Complete"
+  #               },
+  #               {
+  #                 "title": "cves tested",
+  #                 "value": ${{ env.cves_tested }}
+  #               },
+  #               {
+  #                 "title": "blocks",
+  #                 "value": ${{ env.blocks }}
+  #               },
+  #               {
+  #                 "title": "partial blocks",
+  #                 "value": ${{ env.partial_blocks }}
+  #               },
+  #               {
+  #                 "title": "non blocks",
+  #                 "value": ${{ env.non_blocks }}
+  #               }
+  #             ]
+  #           }
+  #           ]
+  #         }
+  #   - name: Failure
+  #     if: ${{ contains(join(needs.*.result, ','), 'failure') }}
+  #     uses: slackapi/slack-github-action@v1.18.0
+  #     with:
+  #       payload: |
+  #         {
+  #         "text": "Seems like Seaweed ran into an error :/",
+  #         "attachments": [
+  #           {
+  #             "color": "c91a23",
+  #             "fields": [
+  #               {
+  #                 "title": "Status",
+  #                 "value": "Incomplete"
+  #               }
+  #             ]
+  #           }
+  #           ]
+  #         }
