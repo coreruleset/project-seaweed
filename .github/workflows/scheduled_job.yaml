@@ -7,15 +7,17 @@ on:
 
 env:
   REPO_OWNER: ${{ github.repository_owner }}
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
 jobs:
   Project-runner:
     name: Project runner
     env:
-      TAG: "lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
+      TAG: "lfi" #lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce
       FORMAT: csv
       FULL_REPORT: true
-      INCLUDE_ALL: true
+      INCLUDE_ALL: false #true
     runs-on: ubuntu-20.04
     
     steps:
@@ -91,13 +93,11 @@ jobs:
          git diff --quiet && git diff --staged --quiet || git commit -m"Add reports & update latest.txt"
          git push
   
-  Extract-info:
-    name: extract data from report
+  Success:
+    name: Send success notification
     runs-on: ubuntu-20.04
     needs: [Update-repo]
-    env:
-       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-       SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+    if: ${{ contains(join(needs.*.result, ','), 'success') }}
     steps:
     - name: fetch repo
       uses: actions/checkout@v3
@@ -146,6 +146,31 @@ jobs:
                 {
                   "title": "non blocks",
                   "value": ${{ env.non_blocks }}
+                }
+              ]
+            }
+            ]
+          }
+  Failure:
+    name: Send Failure notification
+    runs-on: ubuntu-20.04
+    needs: [Success]
+    if: always()
+    steps:
+    - name: Failure
+      if: ${{ !contains(join(needs.*.result, ','), 'success') }}
+      uses: slackapi/slack-github-action@v1.18.0
+      with:
+        payload: |
+          {
+          "text": "Seems like Seaweed ran into an error :/",
+          "attachments": [
+            {
+              "color": "c91a23",
+              "fields": [
+                {
+                  "title": "Status",
+                  "value": "Incomplete"
                 }
               ]
             }
