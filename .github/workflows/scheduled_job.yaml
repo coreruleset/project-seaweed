@@ -14,15 +14,18 @@ jobs:
   Project-runner:
     name: Project runner
     env:
-      TAG: "lfi" #lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce
+      TAG: "lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
       FORMAT: csv
       FULL_REPORT: true
-      INCLUDE_ALL: false #true
+      INCLUDE_ALL: true
     runs-on: ubuntu-20.04
     
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: error
+      run: exit 1
     
     - name: Setup python
       uses: actions/setup-python@v4
@@ -176,67 +179,3 @@ jobs:
             }
             ]
           }
-
-  # Slack-notification:
-  #   name: post slack message
-  #   runs-on: ubuntu-20.04
-  #   needs: [Project-runner,Update-repo,Extract-info]
-  #   if: always()
-  #   env:
-  #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-  #     SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-  #   steps:
-  #   - name: Success
-  #     continue-on-error: true
-  #     uses: slackapi/slack-github-action@v1.18.0
-  #     with:
-  #       payload: |
-  #         {
-  #         "text": "Testing finished!",
-  #         "attachments": [
-  #           {
-  #             "color": "28a745",
-  #             "fields": [
-  #               {
-  #                 "title": "Status",
-  #                 "value": "Complete"
-  #               },
-  #               {
-  #                 "title": "cves tested",
-  #                 "value": ${{ env.cves_tested }}
-  #               },
-  #               {
-  #                 "title": "blocks",
-  #                 "value": ${{ env.blocks }}
-  #               },
-  #               {
-  #                 "title": "partial blocks",
-  #                 "value": ${{ env.partial_blocks }}
-  #               },
-  #               {
-  #                 "title": "non blocks",
-  #                 "value": ${{ env.non_blocks }}
-  #               }
-  #             ]
-  #           }
-  #           ]
-  #         }
-  #   - name: Failure
-  #     if: ${{ contains(join(needs.*.result, ','), 'failure') }}
-  #     uses: slackapi/slack-github-action@v1.18.0
-  #     with:
-  #       payload: |
-  #         {
-  #         "text": "Seems like Seaweed ran into an error :/",
-  #         "attachments": [
-  #           {
-  #             "color": "c91a23",
-  #             "fields": [
-  #               {
-  #                 "title": "Status",
-  #                 "value": "Incomplete"
-  #               }
-  #             ]
-  #           }
-  #           ]
-  #         }
