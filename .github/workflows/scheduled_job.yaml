@@ -1,6 +1,7 @@
 name: scheduled_test
 
 on:
+  # Run every sunday
   schedule:
   - cron: "0 12 * * SUN"
   workflow_dispatch:
@@ -13,6 +14,7 @@ env:
 jobs:
   Project-runner:
     name: Project runner
+    # seaweed configurations
     env:
       TAG: "lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
       FORMAT: csv
@@ -24,9 +26,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: error
-      run: exit 1
-    
     - name: Setup python
       uses: actions/setup-python@v4
       with:
@@ -70,6 +69,7 @@ jobs:
     - name: fetch repo
       uses: actions/checkout@v3
       with:
+        # Uses SSH deploy to maintain permission & push back commits
         repository: ${{ env.REPO_OWNER }}/seaweed-reports
         ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
         persist-credentials: true
@@ -100,6 +100,7 @@ jobs:
     name: Send success notification
     runs-on: ubuntu-20.04
     needs: [Update-repo]
+    # runs only if last job was successful
     if: ${{ contains(join(needs.*.result, ','), 'success') }}
     steps:
     - name: fetch repo
@@ -111,6 +112,7 @@ jobs:
       run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
     
     - name: extract info
+      # extract fields from analysis report (using yq) and set them as env variables
       run: |
         yq() {
           docker run --rm -i -v "${PWD}/${{ env.TARGET_DIR }}":/workdir mikefarah/yq "$@"
@@ -120,6 +122,7 @@ jobs:
         do
           echo "$field=$(yq .$field Reports/analysis.yaml)" >> $GITHUB_ENV
         done
+
     - name: Success
       uses: slackapi/slack-github-action@v1.18.0
       with:
@@ -154,6 +157,7 @@ jobs:
             }
             ]
           }
+
   Failure:
     name: Send Failure notification
     runs-on: ubuntu-20.04
@@ -161,6 +165,7 @@ jobs:
     if: always()
     steps:
     - name: Failure
+    # Runs if anything went wrong in any job
       if: ${{ !contains(join(needs.*.result, ','), 'success') }}
       uses: slackapi/slack-github-action@v1.18.0
       with:
