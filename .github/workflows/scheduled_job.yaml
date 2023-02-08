@@ -1,16 +1,13 @@
 name: scheduled_test
-
 on:
   # Run every sunday
   schedule:
-  - cron: "0 12 * * SUN"
+    - cron: "0 12 * * SUN"
   workflow_dispatch:
-
 env:
   REPO_OWNER: ${{ github.repository_owner }}
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-
 jobs:
   Project-runner:
     name: Project runner
@@ -21,81 +18,64 @@ jobs:
       FULL_REPORT: true
       INCLUDE_ALL: true
     runs-on: ubuntu-20.04
-    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Setup python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
-        architecture: x64
-        token: ${{ github.token }}
-    
-    - name: Install nuclei
-      # fetch nuclei v2.7.7 binary, unzip and add to path
-      run: |
-        header='--header=authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'
-        wget "$header" https://github.com/projectdiscovery/nuclei/releases/download/v2.8.8/nuclei_2.8.8_linux_amd64.zip
-        unzip nuclei*.zip
-        echo "$PWD" >> $GITHUB_PATH
-    
-    - name: install poetry
-      run: pip install poetry==1.1.13
-    
-    - name: install project
-      run: poetry install --no-dev
-    
-    - name: run program
-      run: poetry run project-seaweed tester
-    
-    - name: upload report
-      uses: actions/upload-artifact@v3
-      with:
-        name: Reports
-        path: |
-          *.csv
-          analysis.yaml
-        retention-days: 1
-  
-
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+          architecture: x64
+          token: ${{ github.token }}
+      - name: Install nuclei
+        # fetch nuclei v2.7.7 binary, unzip and add to path
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUCLEI_VERSION: '2.8.8'
+        run: "gh release download -R projectdiscovery/nuclei v${NUCLEI_VERSION} -p \"nuclei_${NUCLEI_VERSION}_linux_amd64.zip\" -O nuclei.zip \nunzip nuclei.zip\nrm nuclei.zip\necho \"$PWD\" >> $GITHUB_PATH\n"
+      - name: install poetry
+        run: pip install poetry==1.1.13
+      - name: install project
+        run: poetry install --no-dev
+      - name: run program
+        run: poetry run project-seaweed tester
+      - name: upload report
+        uses: actions/upload-artifact@v3
+        with:
+          name: Reports
+          path: |
+            *.csv
+            analysis.yaml
+          retention-days: 1
   Update-repo:
     name: Update report repository
     runs-on: ubuntu-20.04
     needs: [Project-runner]
-
     steps:
-    - name: fetch repo
-      uses: actions/checkout@v3
-      with:
-        # Uses SSH deploy to maintain permission & push back commits
-        repository: ${{ env.REPO_OWNER }}/seaweed-reports
-        ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-        persist-credentials: true
-
-    - name: set env
-      run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
-    
-    - name: create dir
-      run: mkdir -p ${{ env.TARGET_DIR }}
-    
-    - name: fetch artifact
-      uses: actions/download-artifact@v3
-      with:
-        path: ${{ env.TARGET_DIR }}
-
-    - name: update latest
-      run: echo ${{ env.TARGET_DIR }} > latest.txt
-
-    - name: commit & push
-      run: |
-         git config user.name github-actions
-         git config user.email github-actions@github.com
-         git add .
-         git diff --quiet && git diff --staged --quiet || git commit -m"Add reports & update latest.txt"
-         git push
-  
+      - name: fetch repo
+        uses: actions/checkout@v3
+        with:
+          # Uses SSH deploy to maintain permission & push back commits
+          repository: ${{ env.REPO_OWNER }}/seaweed-reports
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          persist-credentials: true
+      - name: set env
+        run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
+      - name: create dir
+        run: mkdir -p ${{ env.TARGET_DIR }}
+      - name: fetch artifact
+        uses: actions/download-artifact@v3
+        with:
+          path: ${{ env.TARGET_DIR }}
+      - name: update latest
+        run: echo ${{ env.TARGET_DIR }} > latest.txt
+      - name: commit & push
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git diff --quiet && git diff --staged --quiet || git commit -m"Add reports & update latest.txt"
+          git push
   Success:
     name: Send success notification
     runs-on: ubuntu-20.04
@@ -103,84 +83,80 @@ jobs:
     # runs only if last job was successful
     if: ${{ contains(join(needs.*.result, ','), 'success') }}
     steps:
-    - name: fetch repo
-      uses: actions/checkout@v3
-      with:
-        repository: ${{ env.REPO_OWNER }}/seaweed-reports
-    
-    - name: set target directory
-      run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
-    
-    - name: extract info
-      # extract fields from analysis report (using yq) and set them as env variables
-      run: |
-        yq() {
-          docker run --rm -i -v "${PWD}/${{ env.TARGET_DIR }}":/workdir mikefarah/yq "$@"
-            }
+      - name: fetch repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ env.REPO_OWNER }}/seaweed-reports
+      - name: set target directory
+        run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
+      - name: extract info
+        # extract fields from analysis report (using yq) and set them as env variables
+        run: |
+          yq() {
+            docker run --rm -i -v "${PWD}/${{ env.TARGET_DIR }}":/workdir mikefarah/yq "$@"
+              }
 
-        for field in cves_tested blocks non_blocks partial_blocks
-        do
-          echo "$field=$(yq .$field Reports/analysis.yaml)" >> $GITHUB_ENV
-        done
-
-    - name: Success
-      uses: slackapi/slack-github-action@v1.18.0
-      with:
-        payload: |
-          {
-          "text": "Testing finished!",
-          "attachments": [
+          for field in cves_tested blocks non_blocks partial_blocks
+          do
+            echo "$field=$(yq .$field Reports/analysis.yaml)" >> $GITHUB_ENV
+          done
+      - name: Success
+        uses: slackapi/slack-github-action@v1.18.0
+        with:
+          payload: |
             {
-              "color": "28a745",
-              "fields": [
-                {
-                  "title": "Status",
-                  "value": "Complete"
-                },
-                {
-                  "title": "cves tested",
-                  "value": ${{ env.cves_tested }}
-                },
-                {
-                  "title": "blocks",
-                  "value": ${{ env.blocks }}
-                },
-                {
-                  "title": "partial blocks",
-                  "value": ${{ env.partial_blocks }}
-                },
-                {
-                  "title": "non blocks",
-                  "value": ${{ env.non_blocks }}
-                }
+            "text": "Testing finished!",
+            "attachments": [
+              {
+                "color": "28a745",
+                "fields": [
+                  {
+                    "title": "Status",
+                    "value": "Complete"
+                  },
+                  {
+                    "title": "cves tested",
+                    "value": ${{ env.cves_tested }}
+                  },
+                  {
+                    "title": "blocks",
+                    "value": ${{ env.blocks }}
+                  },
+                  {
+                    "title": "partial blocks",
+                    "value": ${{ env.partial_blocks }}
+                  },
+                  {
+                    "title": "non blocks",
+                    "value": ${{ env.non_blocks }}
+                  }
+                ]
+              }
               ]
             }
-            ]
-          }
-
   Failure:
     name: Send Failure notification
     runs-on: ubuntu-20.04
     needs: [Success]
     if: always()
     steps:
-    - name: Failure
-    # Runs if anything went wrong in any job
-      if: ${{ !contains(join(needs.*.result, ','), 'success') }}
-      uses: slackapi/slack-github-action@v1.18.0
-      with:
-        payload: |
-          {
-          "text": "Seems like Seaweed ran into an error :/",
-          "attachments": [
+      - name: Failure
+        # Runs if anything went wrong in any job
+        if: ${{ !contains(join(needs.*.result, ','), 'success') }}
+        uses: slackapi/slack-github-action@v1.18.0
+        with:
+          payload: |
             {
-              "color": "c91a23",
-              "fields": [
-                {
-                  "title": "Status",
-                  "value": "Incomplete"
-                }
+            "text": "Seems like Seaweed ran into an error :/",
+            "attachments": [
+              {
+                "color": "c91a23",
+                "fields": [
+                  {
+                    "title": "Status",
+                    "value": "Incomplete"
+                  }
+                ]
+              }
               ]
             }
-            ]
-          }
