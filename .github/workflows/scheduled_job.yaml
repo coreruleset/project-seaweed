@@ -49,7 +49,7 @@ jobs:
           retention-days: 1
   Update-repo:
     name: Update report repository
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [Project-runner]
     steps:
       - name: fetch repo
@@ -136,7 +136,7 @@ jobs:
             }
   Failure:
     name: Send Failure notification
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [Success]
     if: always()
     steps:
