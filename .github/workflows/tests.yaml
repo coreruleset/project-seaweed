@@ -26,11 +26,15 @@ jobs:
     - run: pip install poetry==1.1.13
 
     - name: Install nuclei
-      # fetch latest nuclei binary, unzip and add to path
+      # fetch nuclei v2.7.7 binary, unzip and add to path
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NUCLEI_VERSION: '2.8.8'
       run: |
-        wget https://github.com/projectdiscovery/nuclei/releases/download/v2.7.7/nuclei_2.7.7_linux_amd64.zip
-        unzip nuclei*.zip
-        echo "$PWD" >> $GITHUB_PATH
+        gh release download -R projectdiscovery/nuclei v${NUCLEI_VERSION} -p \"nuclei_${NUCLEI_VERSION}_linux_amd64.zip\" -O nuclei.zip
+        unzip nuclei.zip
+        rm nuclei.zip
+        echo "$PWD" >> "$GITHUB_PATH"
         ./nuclei -ut
  
     - run: nox -s tests
