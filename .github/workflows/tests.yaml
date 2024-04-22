@@ -14,9 +14,9 @@ jobs:
     name: Python ${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
 
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@3542bca2639a428e1796aaa6a2ffef0c0f575566 # v3
       with:
         python-version: ${{ matrix.python-version }}
         architecture: x64
