@@ -40,7 +40,7 @@ jobs:
       - name: run program
         run: poetry run project-seaweed tester
       - name: upload report
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3
+        uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba # v4
         with:
           name: Reports
           path: |
@@ -53,7 +53,7 @@ jobs:
     needs: [Project-runner]
     steps:
       - name: fetch repo
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           # Uses SSH deploy to maintain permission & push back commits
           repository: ${{ env.REPO_OWNER }}/seaweed-reports
@@ -64,7 +64,7 @@ jobs:
       - name: create dir
         run: mkdir -p ${{ env.TARGET_DIR }}
       - name: fetch artifact
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3
+        uses: actions/download-artifact@8caf195ad4b1dee92908e23f56eeb0696f1dd42d # v4
         with:
           path: ${{ env.TARGET_DIR }}
       - name: update latest
@@ -84,7 +84,7 @@ jobs:
     if: ${{ contains(join(needs.*.result, ','), 'success') }}
     steps:
       - name: fetch repo
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           repository: ${{ env.REPO_OWNER }}/seaweed-reports
       - name: set target directory
