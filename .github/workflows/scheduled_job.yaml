@@ -8,6 +8,8 @@ env:
   REPO_OWNER: ${{ github.repository_owner }}
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+  NUCLEI_VERSION: '2.8.8'
+  POETRY_VERSION: '1.8.2'
 jobs:
   Project-runner:
     name: Project runner
@@ -31,10 +33,13 @@ jobs:
         # fetch nuclei v2.7.7 binary, unzip and add to path
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NUCLEI_VERSION: '2.8.8'
-        run: "gh release download -R projectdiscovery/nuclei v${NUCLEI_VERSION} -p \"nuclei_${NUCLEI_VERSION}_linux_amd64.zip\" -O nuclei.zip \nunzip nuclei.zip\nrm nuclei.zip\necho \"$PWD\" >> $GITHUB_PATH\n"
+        run: |
+          gh release download -R projectdiscovery/nuclei "v${{ env.NUCLEI_VERSION }}" -p "nuclei_${NUCLEI_VERSION}_linux_amd64.zip" -O nuclei.zip
+          unzip nuclei.zip
+          rm nuclei.zip
+          echo "$PWD" >> "$GITHUB_PATH"
       - name: install poetry
-        run: pip install poetry==1.1.13
+        run: pip install poetry=="${{ env.POETRY_VERSION }}"
       - name: install project
         run: poetry install --no-dev
       - name: run program
@@ -60,19 +65,19 @@ jobs:
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
           persist-credentials: true
       - name: set env
-        run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
+        run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> "$GITHUB_ENV"
       - name: create dir
-        run: mkdir -p ${{ env.TARGET_DIR }}
+        run: mkdir -p "${{ env.TARGET_DIR }}"
       - name: fetch artifact
         uses: actions/download-artifact@8caf195ad4b1dee92908e23f56eeb0696f1dd42d # v4
         with:
           path: ${{ env.TARGET_DIR }}
       - name: update latest
-        run: echo ${{ env.TARGET_DIR }} > latest.txt
+        run: echo "${{ env.TARGET_DIR }}" > latest.txt
       - name: commit & push
         run: |
           git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.email "github-actions@github.com"
           git add .
           git diff --quiet && git diff --staged --quiet || git commit -m"Add reports & update latest.txt"
           git push
@@ -88,7 +93,7 @@ jobs:
         with:
           repository: ${{ env.REPO_OWNER }}/seaweed-reports
       - name: set target directory
-        run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> $GITHUB_ENV
+        run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> "$GITHUB_ENV"
       - name: extract info
         # extract fields from analysis report (using yq) and set them as env variables
         run: |
@@ -98,7 +103,7 @@ jobs:
 
           for field in cves_tested blocks non_blocks partial_blocks
           do
-            echo "$field=$(yq .$field Reports/analysis.yaml)" >> $GITHUB_ENV
+            echo "$field=$(yq .$field Reports/analysis.yaml)" >> "$GITHUB_ENV"
           done
       - name: Success
         uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
