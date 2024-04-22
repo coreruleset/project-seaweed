@@ -166,6 +166,5 @@ cython_debug/
 .vscode/
 results/
 *.csv
-*.json
 nuclei-templates/
 analysis.yaml
