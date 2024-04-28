@@ -34,8 +34,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release download -R projectdiscovery/nuclei "v${{ env.NUCLEI_VERSION }}" -p "nuclei_${NUCLEI_VERSION}_linux_amd64.zip" -O nuclei.zip
-          unzip nuclei.zip
+          gh release download -R projectdiscovery/nuclei "v${{ env.NUCLEI_VERSION }}" -p "nuclei_${NUCLEI_VERSION}_linux_amd64.zip" \
+            -O nuclei.zip
+          unzip nuclei.zip nuclei
           rm nuclei.zip
           echo "$PWD" >> "$GITHUB_PATH"
       - name: install poetry
