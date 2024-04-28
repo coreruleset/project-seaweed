@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8','3.9','3.10', '3.11']
+        python-version: ['3.9','3.10', '3.11', '3.12']
     name: Python ${{ matrix.python-version }}
 
     steps:
@@ -27,7 +27,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NUCLEI_VERSION: '2.8.8'
       run: |
-        gh release download -R projectdiscovery/nuclei v${NUCLEI_VERSION} -p \"nuclei_${NUCLEI_VERSION}_linux_amd64.zip\" -O nuclei.zip
+        gh release download -R projectdiscovery/nuclei v${{ env.NUCLEI_VERSION }} -p \"nuclei_${{ env.NUCLEI_VERSION }}_linux_amd64.zip\" -O nuclei.zip
         unzip nuclei.zip
         rm nuclei.zip
         echo "$PWD" >> "$GITHUB_PATH"
