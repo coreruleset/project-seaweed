@@ -6,13 +6,22 @@ services:
     hostname: httpd-server
     container_name: httpd-server
   modsec_crs:
-    image: owasp/modsecurity-crs:apache@sha256:9c20dd4756378de04c3587911efdf37c15614403c0540e008f16ca1cdbc63cba
+    image: owasp/modsecurity-crs:4-apache-202404131004
+    environment:
+      PORT: 8080
+      BACKEND: "http://backend:8080"
+      MODSEC_RULE_ENGINE: "On"
+      PARANOIA: 4
+      MODSEC_AUDIT_LOG_FORMAT: JSON
+      MODSEC_AUDIT_LOG_TYPE: concurrent
+      MODSEC_TMP_DIR: "/tmp"
+      # Apache only
+      SERVERNAME: _default_
+      ERRORLOG: "/var/log/apache2/error.log"
+      ACCESSLOG: "/var/log/apache2/access.log"
+      MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
     hostname: crs-waf
     container_name: crs-waf
-    environment:
-      - BACKEND=http://httpd-server
-      - PARANOIA=4
-      - MODSEC_AUDIT_LOG=/root/audit.log
     ports:
       - "8080:8080" 
     depends_on:
@@ -21,7 +30,7 @@ services:
     image: projectdiscovery/nuclei:latest@sha256:91db00989521afc6727d1dedad42b1a744fbf92a7cdc9addcca78b45bba95930
     hostname: nuclei
     container_name: nuclei
-    entrypoint: nuclei -u http://crs-waf -tags xss,sqli -srd /results
+    entrypoint: nuclei -u http://crs-waf:8080 -tags xss,sqli -srd /results
     volumes:
       - ./results:/results:rw
     depends_on:
