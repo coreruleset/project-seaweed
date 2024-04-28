@@ -2,7 +2,7 @@ version: '3.5'
 
 services:
   web_server:
-    image: httpd@sha256:b19cace6539a05579c55fda6be0a873c1d2c2e7392e7c08805141f79852ab07b
+    image: httpd@sha256:36c8c79f900108f0f09fd4148ad35ade57cba0dc19d13f3d15be24ce94e6a639
     hostname: httpd-server
     container_name: httpd-server
   modsec_crs:
