@@ -22,11 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       apache:
-        image: httpd:2.4
+        image: ghcr.io/httpd:2.4
         ports:
           - 8088:80
       waf:
-        image: owasp/modsecurity-crs:4-apache-202404131004
+        image: ghcr.io/owasp/modsecurity-crs:4-apache-202404131004
         env:
           MODSEC_RULE_ENGINE: "On"
           SERVERNAME: "_default_"
