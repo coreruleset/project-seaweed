@@ -1,4 +1,4 @@
-name: scheduled_test
+name: Run Nuclei
 on:
   # Run every sunday
   schedule:
@@ -11,101 +11,56 @@ env:
   NUCLEI_VERSION: '3.2.5'
   POETRY_VERSION: '1.8.2'
 jobs:
-  Project-runner:
+  project-runner:
     name: Project runner
     # seaweed configurations
     env:
       TAG: "lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
-      FORMAT: csv
-      FULL_REPORT: true
-      INCLUDE_ALL: true
+      WAF_IMAGE: "owasp/modsecurity-crs:4-apache-202404131004"
+      HTTPD_IMAGE: "httpd:2.4"
+      
     runs-on: ubuntu-latest
+    services:
+      apache:
+        image: httpd:2.4
+        ports:
+          - 8088:80
+      waf:
+        image: owasp/modsecurity-crs:4-apache-202404131004
+        env:
+          MODSEC_RULE_ENGINE: "On"
+          SERVERNAME: "_default_"
+          MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
+          PARANOIA: 4
+          BACKEND: "http://apache:8088"
+        options: >-
+            --health-interval 5s
+        ports:
+          - 8080:8080
     steps:
       - name: Checkout
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
-      - name: Setup python
-        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5
+
+      - name: Nuclei - Vulnerability Scan
+        uses: projectdiscovery/nuclei-action@main
         with:
-          python-version: 3.9
-          architecture: x64
-          token: ${{ github.token }}
-      - name: Install nuclei
-        # fetch nuclei binary, unzip and add to path
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release download -R projectdiscovery/nuclei "v${{ env.NUCLEI_VERSION }}" -p "nuclei_${NUCLEI_VERSION}_linux_amd64.zip" \
-            -O nuclei.zip
-          unzip nuclei.zip nuclei
-          rm nuclei.zip
-          echo "$PWD" >> "$GITHUB_PATH"
-      - name: install poetry
-        run: pip install poetry=="${{ env.POETRY_VERSION }}"
-      - name: install project
-        run: poetry install --no-dev
-      - name: run program
-        run: poetry run project-seaweed tester
-      - name: upload report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+          target: "http://localhost:8080"
+          flags: "-tags ${{ env.TAG }}"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: GitHub Workflow artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: Reports
-          path: |
-            *.csv
-            analysis.yaml
-          retention-days: 1
-  Update-repo:
-    name: Update report repository
-    runs-on: ubuntu-latest
-    needs: [Project-runner]
-    steps:
-      - name: fetch repo
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
-        with:
-          # Uses SSH deploy to maintain permission & push back commits
-          repository: ${{ env.REPO_OWNER }}/seaweed-reports
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          persist-credentials: true
-      - name: set env
-        run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> "$GITHUB_ENV"
-      - name: create dir
-        run: mkdir -p "${{ env.TARGET_DIR }}"
-      - name: fetch artifact
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4
-        with:
-          path: ${{ env.TARGET_DIR }}
-      - name: update latest
-        run: echo "${{ env.TARGET_DIR }}" > latest.txt
-      - name: commit & push
-        run: |
-          git config user.name github-actions
-          git config user.email "github-actions@github.com"
-          git add .
-          git diff --quiet && git diff --staged --quiet || git commit -m"Add reports & update latest.txt"
-          git push
-  Success:
+          name: nuclei.log
+          path: nuclei.log
+      
+  success:
     name: Send success notification
     runs-on: ubuntu-latest
-    needs: [Update-repo]
+    needs: [project-runner]
     # runs only if last job was successful
     if: ${{ contains(join(needs.*.result, ','), 'success') }}
     steps:
-      - name: fetch repo
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
-        with:
-          repository: ${{ env.REPO_OWNER }}/seaweed-reports
-      - name: set target directory
-        run: echo "TARGET_DIR=$(date -u +%Y/%b/%d)" >> "$GITHUB_ENV"
-      - name: extract info
-        # extract fields from analysis report (using yq) and set them as env variables
-        run: |
-          yq() {
-            docker run --rm -i -v "${PWD}/${{ env.TARGET_DIR }}":/workdir mikefarah/yq "$@"
-              }
-
-          for field in cves_tested blocks non_blocks partial_blocks
-          do
-            echo "$field=$(yq .$field Reports/analysis.yaml)" >> "$GITHUB_ENV"
-          done
       - name: Success
         uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
         with:
@@ -140,10 +95,10 @@ jobs:
               }
               ]
             }
-  Failure:
+  failure:
     name: Send Failure notification
     runs-on: ubuntu-latest
-    needs: [Success]
+    needs: [success]
     if: always()
     steps:
       - name: Failure

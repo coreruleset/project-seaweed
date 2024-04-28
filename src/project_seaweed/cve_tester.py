@@ -69,9 +69,13 @@ class Cve_tester:
             self.keep_setup: bool = keep_setup
             self.waf_url: str = "http://localhost:8080"
             self.waf_env: str = [
+                "MODSEC_RULE_ENGINE=On",
+                "SERVERNAME=_default_",
+                "ERRORLOG=/var/log/apache2/error.log",
+                "ACCESSLOG=/var/log/apache2/access.log"
+                "MODSEC_AUDIT_LOG=/var/log/apache2/modsec_audit.log",
                 "PARANOIA=4",
                 "BACKEND=http://" + self.web_server_name,
-                "MODSEC_AUDIT_LOG=/root/audit.log",
             ]
 
         elif is_reachable(waf_url):
