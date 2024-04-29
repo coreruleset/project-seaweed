@@ -42,79 +42,79 @@ jobs:
         uses: projectdiscovery/nuclei-action@main
         with:
           target: "http://localhost:8080"
-          flags: "-tags ${{ env.TAG }}"
+          flags: "-tags ${{ env.TAG }} -srd output -j"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: GitHub Workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: nuclei.log
-          path: nuclei.log
+          name: output
+          path: output/**
       
-  success:
-    name: Send success notification
-    runs-on: ubuntu-latest
-    needs: [project-runner]
-    # runs only if last job was successful
-    if: success()
-    steps:
-      - name: Success
-        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
-        with:
-          payload: |
-            {
-            "text": "Testing finished!",
-            "attachments": [
-              {
-                "color": "28a745",
-                "fields": [
-                  {
-                    "title": "Status",
-                    "value": "Complete"
-                  },
-                  {
-                    "title": "cves tested",
-                    "value": ${{ env.cves_tested }}
-                  },
-                  {
-                    "title": "blocks",
-                    "value": ${{ env.blocks }}
-                  },
-                  {
-                    "title": "partial blocks",
-                    "value": ${{ env.partial_blocks }}
-                  },
-                  {
-                    "title": "non blocks",
-                    "value": ${{ env.non_blocks }}
-                  }
-                ]
-              }
-              ]
-            }
-  failure:
-    name: Send Failure notification
-    runs-on: ubuntu-latest
-    needs: [project-runner]
-    if: failure()
-    steps:
-      - name: Failure
-        # Runs if anything went wrong in any job
-        if: ${{ !contains(join(needs.*.result, ','), 'success') }}
-        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
-        with:
-          payload: |
-            {
-            "text": "Seems like Seaweed ran into an error :/",
-            "attachments": [
-              {
-                "color": "c91a23",
-                "fields": [
-                  {
-                    "title": "Status",
-                    "value": "Incomplete"
-                  }
-                ]
-              }
-              ]
-            }
+  # success:
+  #   name: Send success notification
+  #   runs-on: ubuntu-latest
+  #   needs: [project-runner]
+  #   # runs only if last job was successful
+  #   if: success()
+  #   steps:
+  #     - name: Success
+  #       uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
+  #       with:
+  #         payload: |
+  #           {
+  #           "text": "Testing finished!",
+  #           "attachments": [
+  #             {
+  #               "color": "28a745",
+  #               "fields": [
+  #                 {
+  #                   "title": "Status",
+  #                   "value": "Complete"
+  #                 },
+  #                 {
+  #                   "title": "cves tested",
+  #                   "value": ${{ env.cves_tested }}
+  #                 },
+  #                 {
+  #                   "title": "blocks",
+  #                   "value": ${{ env.blocks }}
+  #                 },
+  #                 {
+  #                   "title": "partial blocks",
+  #                   "value": ${{ env.partial_blocks }}
+  #                 },
+  #                 {
+  #                   "title": "non blocks",
+  #                   "value": ${{ env.non_blocks }}
+  #                 }
+  #               ]
+  #             }
+  #             ]
+  #           }
+  # failure:
+  #   name: Send Failure notification
+  #   runs-on: ubuntu-latest
+  #   needs: [project-runner]
+  #   if: failure()
+  #   steps:
+  #     - name: Failure
+  #       # Runs if anything went wrong in any job
+  #       if: ${{ !contains(join(needs.*.result, ','), 'success') }}
+  #       uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
+  #       with:
+  #         payload: |
+  #           {
+  #           "text": "Seems like Seaweed ran into an error :/",
+  #           "attachments": [
+  #             {
+  #               "color": "c91a23",
+  #               "fields": [
+  #                 {
+  #                   "title": "Status",
+  #                   "value": "Incomplete"
+  #                 }
+  #               ]
+  #             }
+  #             ]
+  #           }
