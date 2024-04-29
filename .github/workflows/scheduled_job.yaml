@@ -10,37 +10,34 @@ env:
   SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
   NUCLEI_VERSION: '3.2.5'
   POETRY_VERSION: '1.8.2'
+
 jobs:
   project-runner:
     name: Project runner
     # seaweed configurations
     env:
       TAG: "lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
-      WAF_IMAGE: "owasp/modsecurity-crs:4-apache-202404131004"
-      HTTPD_IMAGE: "httpd:2.4"
       
     runs-on: ubuntu-latest
     services:
       apache:
-        image: ghcr.io/httpd:2.4
-        ports:
-          - 8088:80
+        image: "httpd:2.4"
+
       waf:
-        image: ghcr.io/owasp/modsecurity-crs:4-apache-202404131004
+        image: "owasp/modsecurity-crs:4-apache-202404131004"
         env:
           MODSEC_RULE_ENGINE: "On"
           SERVERNAME: "_default_"
           MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
           PARANOIA: 4
-          BACKEND: "http://apache:8088"
-        options: >-
-            --health-interval 5s
+          BACKEND: "http://apache:80"
         ports:
           - 8080:8080
     steps:
-      - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
-
+      - name: Check services
+        run: |
+          curl -v http://localhost:8080
+          
       - name: Nuclei - Vulnerability Scan
         uses: projectdiscovery/nuclei-action@main
         with:
@@ -59,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [project-runner]
     # runs only if last job was successful
-    if: ${{ contains(join(needs.*.result, ','), 'success') }}
+    if: success()
     steps:
       - name: Success
         uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
@@ -98,8 +95,8 @@ jobs:
   failure:
     name: Send Failure notification
     runs-on: ubuntu-latest
-    needs: [success]
-    if: always()
+    needs: [project-runner]
+    if: failure()
     steps:
       - name: Failure
         # Runs if anything went wrong in any job
