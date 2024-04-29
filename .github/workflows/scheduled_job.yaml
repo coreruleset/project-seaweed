@@ -17,32 +17,26 @@ jobs:
     # seaweed configurations
     env:
       TAG: "lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
-      
     runs-on: ubuntu-latest
     services:
       apache:
         image: "httpd:2.4"
-
       waf:
         image: "owasp/modsecurity-crs:4-apache-202404131004"
+        ports:
+          - 8080:8080
         env:
           MODSEC_RULE_ENGINE: "On"
           SERVERNAME: "_default_"
           MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
           PARANOIA: 4
           BACKEND: "http://apache:80"
-        ports:
-          - 8080:8080
-    steps:
-      - name: Check services
-        run: |
-          curl -v http://localhost:8080
-          
+    steps:          
       - name: Nuclei - Vulnerability Scan
         uses: projectdiscovery/nuclei-action@main
         with:
-          target: "http://localhost:8080"
-          flags: "-tags ${{ env.TAG }} -srd output -j"
+          target: "http://127.0.0.1:8080"
+          flags: "-t http/cves -type http -stats -ni -sresp"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: GitHub Workflow artifacts
