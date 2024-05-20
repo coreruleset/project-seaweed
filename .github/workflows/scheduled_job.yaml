@@ -56,7 +56,7 @@ jobs:
         total_requests: ${{ steps.report.outputs.total_requests }}
         total_blocked: ${{ steps.report.outputs.total_blocked }}
         total_not_blocked: ${{ steps.report.outputs.total_not_blocked }}
-        partial_blocks: ${{ steps.report.outputs.partial_blocks }}
+        partially_blocked: ${{ steps.report.outputs.partially_blocked }}
       steps:
         - name: Checkout code
           uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
@@ -87,7 +87,7 @@ jobs:
      total_requests: ${{ needs.process-artifacts.outputs.total_requests }}
      total_blocked: ${{ needs.process-artifacts.outputs.total_blocked }}
      total_not_blocked: ${{ needs.process-artifacts.outputs.total_not_blocked }}
-     partial_blocks: ${{ needs.process-artifacts.outputs.partial_blocks }}
+     partially_blocked: ${{ needs.process-artifacts.outputs.partially_blocked }}
    steps:
      - name: Success
        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
@@ -112,8 +112,8 @@ jobs:
                    "value": ${{ env.total_blocked }}
                  },
                  {
-                   "title": "partial blocks",
-                   "value": ${{ env.partial_blocks }}
+                   "title": "partially blocked",
+                   "value": ${{ env.partially_blocked }}
                  },
                  {
                    "title": "non blocks",
