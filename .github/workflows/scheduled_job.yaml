@@ -32,7 +32,7 @@ jobs:
           BACKEND: "http://apache:80"
     steps:          
       - name: Nuclei - Vulnerability Scan
-        uses: projectdiscovery/nuclei-action@main
+        uses: projectdiscovery/nuclei-action@v2.0.1
         with:
           target: "http://127.0.0.1:8080"
           flags: "-t http/cves -type http -stats -ni -sresp"
