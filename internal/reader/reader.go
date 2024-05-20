@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -60,7 +61,7 @@ func parseNucleiTraceOutput(filename string) (NucleiTraceOutput, error) {
 				case "response":
 					pl.TotalRequests++
 					pl.StatusCode, _ = strconv.Atoi(found[1])
-					if pl.StatusCode == 403 {
+					if pl.StatusCode == http.StatusForbidden {
 						pl.BlockedRequests++
 					} else {
 						pl.NotBlockedRequests++

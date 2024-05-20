@@ -2,7 +2,10 @@ module github.com/coreruleset/project-seaweed
 
 go 1.22.3
 
-require github.com/spf13/cobra v1.8.0
+require (
+	github.com/spf13/cobra v1.8.0
+	github.com/thediveo/enumflag v0.10.1
+)
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
