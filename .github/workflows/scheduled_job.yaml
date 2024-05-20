@@ -38,9 +38,9 @@ jobs:
           flags: "-t http/cves -type http -stats -ni -sresp"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: montudor/action-zip@a8e75c9faefcd80fac3baf53ef40b9b119d5b702 # v1
-        with:
-          args: zip -qq -r output.zip output
+      - name: zip output
+        run: |
+          zip -qq -r output.zip output
 
       - name: GitHub Workflow artifacts
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -70,6 +70,8 @@ jobs:
         - name: Build report
           run: |
             go build
+            find .
+            unzip output.zip
             ./project-seaweed -o output
 
   # success:
