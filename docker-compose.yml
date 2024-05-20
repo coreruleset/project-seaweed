@@ -24,7 +24,7 @@ services:
     depends_on:
       - web_server
   nuclei:
-    image: projectdiscovery/nuclei:latest@sha256:91db00989521afc6727d1dedad42b1a744fbf92a7cdc9addcca78b45bba95930
+    image: projectdiscovery/nuclei:latest@sha256:adae7779353310f67bb4cdb1ea5f9fa83609ff03f2e8f3f487029d5acc10eb49
     hostname: nuclei
     container_name: nuclei
     command: -u http://crs-waf:8080 -t http/cves -type http -stats -ni -sresp -jle output.json
