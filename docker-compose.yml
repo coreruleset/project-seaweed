@@ -6,7 +6,7 @@ services:
     hostname: apache
     container_name: httpd-server
   modsec_crs:
-    image: owasp/modsecurity-crs:4-apache-202404131004
+    image: owasp/modsecurity-crs:4-apache-202404131004@sha256:9c20dd4756378de04c3587911efdf37c15614403c0540e008f16ca1cdbc63cba
     environment:
       PORT: 8080
       BACKEND: "http://apache:80"
