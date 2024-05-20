@@ -18,8 +18,6 @@ services:
       # Apache only
       SERVERNAME: _default_
       MODSEC_ERROR_LOG: "/dev/stderr"
-      ERRORLOG: '/proc/self/fd/2'
-      ACCESSLOG: '/proc/self/fd/1'
       MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
     hostname: crs-waf
     container_name: crs-waf
@@ -29,7 +27,7 @@ services:
     image: projectdiscovery/nuclei:latest@sha256:91db00989521afc6727d1dedad42b1a744fbf92a7cdc9addcca78b45bba95930
     hostname: nuclei
     container_name: nuclei
-    command: -u http://crs-waf:8080 -t http/cves -type http -stats -dresp -ni -sresp
+    command: -u http://crs-waf:8080 -t http/cves -type http -stats -ni -sresp -jle output.json
     volumes:
       - ./output:/output:rw
     depends_on:
