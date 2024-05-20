@@ -52,6 +52,11 @@ jobs:
       name: Generate report
       runs-on: ubuntu-latest
       needs: [project-runner]
+      outputs:
+        total_requests: ${{ steps.report.outputs.total_requests }}
+        total_blocked: ${{ steps.report.outputs.total_blocked }}
+        total_not_blocked: ${{ steps.report.outputs.total_not_blocked }}
+        partial_blocks: ${{ steps.report.outputs.partial_blocks }}
       steps:
         - name: Checkout code
           uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
@@ -67,75 +72,56 @@ jobs:
             name: output
 
         - name: Build report
+          id: report
           run: |
             go build
-            unzip output.zip
-            ./project-seaweed -o output
+            unzip -qq output.zip
+            ./project-seaweed -o output >> "$GITHUB_OUTPUT"
 
-  # success:
-  #   name: Send success notification
-  #   runs-on: ubuntu-latest
-  #   needs: [project-runner]
-  #   # runs only if last job was successful
-  #   if: success()
-  #   steps:
-  #     - name: Success
-  #       uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
-  #       with:
-  #         payload: |
-  #           {
-  #           "text": "Testing finished!",
-  #           "attachments": [
-  #             {
-  #               "color": "28a745",
-  #               "fields": [
-  #                 {
-  #                   "title": "Status",
-  #                   "value": "Complete"
-  #                 },
-  #                 {
-  #                   "title": "cves tested",
-  #                   "value": ${{ env.cves_tested }}
-  #                 },
-  #                 {
-  #                   "title": "blocks",
-  #                   "value": ${{ env.blocks }}
-  #                 },
-  #                 {
-  #                   "title": "partial blocks",
-  #                   "value": ${{ env.partial_blocks }}
-  #                 },
-  #                 {
-  #                   "title": "non blocks",
-  #                   "value": ${{ env.non_blocks }}
-  #                 }
-  #               ]
-  #             }
-  #             ]
-  #           }
-  # failure:
-  #   name: Send Failure notification
-  #   runs-on: ubuntu-latest
-  #   needs: [project-runner]
-  #   if: failure()
-  #   steps:
-  #     - name: Failure
-  #       # Runs if anything went wrong in any job
-  #       if: ${{ !contains(join(needs.*.result, ','), 'success') }}
-  #       uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
-  #       with:
-  #         payload: |
-  #           {
-  #           "text": "Seems like Seaweed ran into an error :/",
-  #           "attachments": [
-  #             {
-  #               "color": "c91a23",
-  #               "fields": [
-  #                 {
-  #                   "title": "Status",
-  #                   "value": "Incomplete"
-  #                 }
-  #               ]
-  #             }
-  #             ]
-  #           }
+
+  slack-notification:
+   name: Send notification
+   runs-on: ubuntu-latest
+   needs: process-artifacts
+   env:
+     total_requests: ${{ needs.process-artifacts.outputs.total_requests }}
+     total_blocked: ${{ needs.process-artifacts.outputs.total_blocked }}
+     total_not_blocked: ${{ needs.process-artifacts.outputs.total_not_blocked }}
+     partial_blocks: ${{ needs.process-artifacts.outputs.partial_blocks }}
+   steps:
+     - name: Success
+       uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
+       with:
+         payload: |
+           {
+           "text": "Testing finished!",
+           "attachments": [
+             {
+               "color": "28a745",
+               "fields": [
+                 {
+                   "title": "Status",
+                   "value": "Complete"
+                 },
+                 {
+                   "title": "total requests - cves tested",
+                   "value": ${{ env.total_requests }}
+                 },
+                 {
+                   "title": "blocks",
+                   "value": ${{ env.total_blocked }}
+                 },
+                 {
+                   "title": "partial blocks",
+                   "value": ${{ env.partial_blocks }}
+                 },
+                 {
+                   "title": "non blocks",
+                   "value": ${{ env.total_not_blocked }}
+                 }
+               ]
+             }
+             ]
+           }
+
+

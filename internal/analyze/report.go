@@ -44,11 +44,11 @@ func ReportNucleiBlocks(path string) error {
 	}
 
 	// Print the global report
-	fmt.Printf("Total requests: %d\n", globalReport.TotalRequests)
-	fmt.Printf("Total blocked: %d\n", globalReport.TotalBlocked)
-	fmt.Printf("Total not blocked: %d\n", globalReport.TotalNotBlocked)
-	fmt.Printf("Partially blocked: %d\n", globalReport.PartialBlocked)
-	fmt.Printf("CVEs blocked: %v\n", globalReport.CVEsBlocked)
-	fmt.Printf("CVEs Not blocked: %v\n", globalReport.CVEsNotBlocked)
+	fmt.Printf("total_requests=%d\n", globalReport.TotalRequests)
+	fmt.Printf("total_blocked=%d\n", globalReport.TotalBlocked)
+	fmt.Printf("total_not_blocked=%d\n", globalReport.TotalNotBlocked)
+	fmt.Printf("partially_blocked=%d\n", globalReport.PartialBlocked)
+	//fmt.Printf("CVEs blocked: %v\n", globalReport.CVEsBlocked)
+	//fmt.Printf("CVEs Not blocked: %v\n", globalReport.CVEsNotBlocked)
 	return nil
 }
