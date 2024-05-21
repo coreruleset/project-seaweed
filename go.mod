@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	github.com/spf13/cobra v1.8.0
 	github.com/thediveo/enumflag v0.10.1
+	github.com/thediveo/enumflag/v2 v2.0.5
 )
 
 require (
