@@ -18,8 +18,8 @@ jobs:
       TAG: "lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce"
     runs-on: ubuntu-latest
     services:
-      apache:
-        image: "httpd:2.4@sha256:43c7661a3243c04b0955c81ac994ea13a1d8a1e53c15023a7b3cd5e8bb25de3c"
+      dummyhttp:
+        image: "svenstaro/dummyhttp:1.0.3@sha256:7f4ce2ee5952f1c1b55a4c808c63a7f4485259b7b08d970db6c20d0efced7bfe"
       waf:
         image: "owasp/modsecurity-crs:4-apache-202404131004@sha256:9c20dd4756378de04c3587911efdf37c15614403c0540e008f16ca1cdbc63cba"
         ports:
@@ -29,7 +29,7 @@ jobs:
           SERVERNAME: "_default_"
           MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
           PARANOIA: 4
-          BACKEND: "http://apache:80"
+          BACKEND: "http://dummyhttp:80"
     steps:          
       - name: Nuclei - Vulnerability Scan
         uses: projectdiscovery/nuclei-action@6a69b5015a4059e8804afcb33ff5e56bfd546908 # v2.0.1

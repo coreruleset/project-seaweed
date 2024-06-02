@@ -1,15 +1,13 @@
 version: '3.5'
 
 services:
-  web_server:
-    image: httpd@sha256:43c7661a3243c04b0955c81ac994ea13a1d8a1e53c15023a7b3cd5e8bb25de3c
-    hostname: apache
-    container_name: httpd-server
-  modsec_crs:
-    image: owasp/modsecurity-crs:4-apache-202404131004@sha256:9c20dd4756378de04c3587911efdf37c15614403c0540e008f16ca1cdbc63cba
+  dummyhttp:
+    image: "svenstaro/dummyhttp:1.0.3@sha256:7f4ce2ee5952f1c1b55a4c808c63a7f4485259b7b08d970db6c20d0efced7bfe"
+  crs:
+    image: "owasp/modsecurity-crs:4-apache-202404131004@sha256:9c20dd4756378de04c3587911efdf37c15614403c0540e008f16ca1cdbc63cba"
     environment:
       PORT: 8080
-      BACKEND: "http://apache:80"
+      BACKEND: "http://dummyhttp:8080"
       MODSEC_RULE_ENGINE: "On"
       PARANOIA: 4
       MODSEC_AUDIT_LOG_FORMAT: JSON
@@ -19,17 +17,14 @@ services:
       SERVERNAME: _default_
       MODSEC_ERROR_LOG: "/dev/stderr"
       MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
-    hostname: crs-waf
-    container_name: crs-waf
-    depends_on:
-      - web_server
+    hostname: crs
   nuclei:
     image: projectdiscovery/nuclei:latest@sha256:adae7779353310f67bb4cdb1ea5f9fa83609ff03f2e8f3f487029d5acc10eb49
     hostname: nuclei
     container_name: nuclei
-    command: -u http://crs-waf:8080 -t http/cves -type http -stats -ni -sresp -jle output.json
+    command: -u http://crs:8080 -t http/cves -type http -stats -ni -sresp -jle output.json
     volumes:
       - ./output:/output:rw
     depends_on:
-      - web_server
-      - modsec_crs
+      - dummyhttp
+      - crs
