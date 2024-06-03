@@ -9,7 +9,7 @@ services:
       PORT: 8080
       BACKEND: "http://dummyhttp:8080"
       MODSEC_RULE_ENGINE: "On"
-      PARANOIA: 4
+      BLOCKING_PARANOIA: 4
       MODSEC_AUDIT_LOG_FORMAT: JSON
       MODSEC_AUDIT_LOG_TYPE: concurrent
       MODSEC_TMP_DIR: "/tmp"

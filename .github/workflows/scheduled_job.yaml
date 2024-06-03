@@ -28,7 +28,7 @@ jobs:
           MODSEC_RULE_ENGINE: "On"
           SERVERNAME: "_default_"
           MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
-          PARANOIA: 4
+          BLOCKING_PARANOIA: 4
           BACKEND: "http://dummyhttp:80"
     steps:          
       - name: Nuclei - Vulnerability Scan
