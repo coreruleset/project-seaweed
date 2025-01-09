@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"context"
+
 	"github.com/coreruleset/project-seaweed/internal/analyze"
 
 	"github.com/spf13/cobra"
-	"github.com/thediveo/enumflag"
+	"github.com/thediveo/enumflag/v2"
 )
 
 type FormatMode enumflag.Flag
