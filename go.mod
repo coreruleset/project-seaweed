@@ -3,7 +3,7 @@ module github.com/coreruleset/project-seaweed
 go 1.22.3
 
 require (
-	github.com/spf13/cobra v1.9.0
+	github.com/spf13/cobra v1.9.1
 	github.com/thediveo/enumflag/v2 v2.0.7
 )
 
