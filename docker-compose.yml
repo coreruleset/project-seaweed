@@ -2,7 +2,7 @@ version: '3.5'
 
 services:
   dummyhttp:
-    image: "svenstaro/dummyhttp:1.1.0@sha256:9bd5ee6432fbee297107529b1d96a59631f1cb9bcde92cc56b8fd17f688e1606"
+    image: "svenstaro/dummyhttp:1.1.1@sha256:cdd9a69c26b16a9fd16990432a69a07fbf4f6211f369d7d4665415c99a559e27"
   crs:
     image: "owasp/modsecurity-crs:4-apache-202404131004@sha256:9c20dd4756378de04c3587911efdf37c15614403c0540e008f16ca1cdbc63cba"
     environment:
