@@ -19,7 +19,7 @@ services:
       MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
     hostname: crs
   nuclei:
-    image: projectdiscovery/nuclei:latest@sha256:d0e34e04a7180c6b944550b81fe50719f57383affcb18ae7a42c0045643d54af
+    image: projectdiscovery/nuclei:latest@sha256:6f284d790f7364c1f4b8c984859eafc987d65a389fffbfd884bf50fde8ccfae3
     hostname: nuclei
     container_name: nuclei
     command: -u http://crs:8080 -t http/cves -type http -stats -ni -sresp -jle output.json
