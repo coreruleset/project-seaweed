@@ -1,10 +1,12 @@
 module github.com/coreruleset/project-seaweed
 
-go 1.22.3
+go 1.23.0
+
+toolchain go1.24.11
 
 require (
 	github.com/spf13/cobra v1.10.2
-	github.com/thediveo/enumflag/v2 v2.0.7
+	github.com/thediveo/enumflag/v2 v2.1.0
 )
 
 require (
