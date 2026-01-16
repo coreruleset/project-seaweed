@@ -2,7 +2,7 @@ module github.com/coreruleset/project-seaweed
 
 go 1.23.0
 
-toolchain go1.25.5
+toolchain go1.25.6
 
 require (
 	github.com/spf13/cobra v1.10.2
