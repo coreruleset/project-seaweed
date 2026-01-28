@@ -30,7 +30,7 @@ jobs:
           BACKEND: "http://dummyhttp:80"
     steps:          
       - name: Nuclei - Vulnerability Scan
-        uses: projectdiscovery/nuclei-action@128f7284c2a836b485e292b9080dbc6175103758 # v2.0.2
+        uses: projectdiscovery/nuclei-action@51a9aa9ebd4ec21ccc43d8618d2b747926cd63dd # v2.1.0
         with:
           target: "http://127.0.0.1:8080"
           flags: "-t http/cves -type http -stats -ni -sresp"
