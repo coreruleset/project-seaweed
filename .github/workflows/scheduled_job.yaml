@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       dummyhttp:
-        image: "svenstaro/dummyhttp:1.1.2@sha256:a744c7862b5d7032ae1bd03d03d45a26bac21aafca717760cd1f97e14fd4c54a"
+        image: "svenstaro/dummyhttp:1.1.3@sha256:7f755b3f846f86c459d3e517416122c3f05a1185b62ff08abf34dff9cc1a7d0c"
       waf:
         image: "owasp/modsecurity-crs:4-apache-202404131004@sha256:9c20dd4756378de04c3587911efdf37c15614403c0540e008f16ca1cdbc63cba"
         ports:
