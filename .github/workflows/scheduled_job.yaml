@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 env:
   REPO_OWNER: ${{ github.repository_owner }}
-  NUCLEI_VERSION: '3.2.5'
+  # renovate: datasource=github-releases depName=projectdiscovery/nuclei
+  NUCLEI_VERSION: 'v3.2.5'
 
 jobs:
   project-runner:
@@ -32,9 +33,16 @@ jobs:
       - name: Nuclei - Vulnerability Scan
         uses: projectdiscovery/nuclei-action@cc153d0541e1adf8a42bbe31c0a4fb2376147538 # v3.1.1
         with:
-          target: "http://127.0.0.1:8080"
-          flags: "-t http/cves -type http -stats -ni -sresp"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ env.NUCLEI_VERSION }}
+          args: >-
+            -target http://127.0.0.1:8080
+            -t http/cves
+            -tags ${{ env.TAG }}
+            -type http
+            -stats
+            -ni
+            -sresp
+            -srd output
 
       - name: zip output
         run: |
@@ -63,7 +71,7 @@ jobs:
         - name: Setup Go
           uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
           with:
-            go-version: '^1.22.3'
+            go-version-file: 'go.mod'
 
         - name: Download artifacts
           uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
