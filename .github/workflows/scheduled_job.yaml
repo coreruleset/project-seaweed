@@ -38,6 +38,7 @@ jobs:
 
       - name: zip output
         run: |
+          mkdir -p output
           zip -qq -r output.zip output
 
       - name: GitHub Workflow artifacts
@@ -123,5 +124,4 @@ jobs:
              }
              ]
            }
-
 
