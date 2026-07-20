@@ -6,7 +6,7 @@ toolchain go1.26.5
 
 require (
 	github.com/spf13/cobra v1.10.2
-	github.com/thediveo/enumflag/v2 v2.2.0
+	github.com/thediveo/enumflag/v2 v2.2.1
 )
 
 require (
