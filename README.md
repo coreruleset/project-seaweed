@@ -42,12 +42,24 @@ Flags:
 
 2. **Docker Setup**
 
-By default, a docker setup containing of ModSec-CRS reverse proxy container (Firewall) and an apache web server
-container is created and both the containers are attached to a network. This was done to have a local firewall setup.
-This has 2 advantages:
+`docker compose up` creates a ModSec-CRS reverse proxy container (the firewall) in front of a mock backend, on a shared
+network. This was done to have a local firewall setup. This has 2 advantages:
 
 - Removes network latency and hence quicker testing
 - Doesn't disturb the remote firewall
+
+Nuclei only starts once a request has been proven to round-trip through the WAF to the backend, so a broken environment
+fails the run instead of reporting every payload as unblocked.
+
+The mock backend answers every path with `mock/fingerprints.html`, a generated page carrying the strings that
+flow-gated Nuclei templates look for before they send their payload. Regenerate it when the templates change:
+
+```
+git clone --depth 1 https://github.com/projectdiscovery/nuclei-templates.git
+go run . gen-mock
+```
+
+See [docs/adr](docs/adr) for why.
 
 3. **Report generation**
 
