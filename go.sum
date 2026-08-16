@@ -28,6 +28,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/thediveo/enumflag/v2 v2.2.0 h1:T8ty4R+Pv+pYiK+lSVSk45MuyM39T/29ZZTH/6QH3Ls=
 github.com/thediveo/enumflag/v2 v2.2.0/go.mod h1:3ax7ccNoUb+rnHhNepTx1vdhrlKyMUefD+Z8kvxiVg4=
+github.com/thediveo/enumflag/v2 v2.2.1 h1:sB6zJBA7G5Qk5tcCK5f25H8Rfern7idwTASdBxY4inQ=
+github.com/thediveo/enumflag/v2 v2.2.1/go.mod h1:Fa35DiSMi7oIXNc1VJPktJVlsk4NPW8dYY3Zjvhx+S4=
 github.com/thediveo/success v1.0.3 h1:jaBpZ5ETfmCo9U3CRDtWPhtXQg3iW3beZH4ioLMR5RQ=
 github.com/thediveo/success v1.0.3/go.mod h1:K+8SXrNPdonCYg4iCTYGQ6dCvqjGiTtLs5ZTB5eEKTg=
 go.yaml.in/yaml/v3 v3.0.4 h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=
