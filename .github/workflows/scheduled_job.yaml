@@ -15,12 +15,7 @@ jobs:
     # container burning six hours of runner time.
     timeout-minutes: 30
     outputs:
-      total_requests: ${{ steps.report.outputs.total_requests }}
-      total_errored: ${{ steps.report.outputs.total_errored }}
-      cves_tested: ${{ steps.report.outputs.cves_tested }}
-      cves_blocked: ${{ steps.report.outputs.cves_blocked }}
-      cves_partially_blocked: ${{ steps.report.outputs.cves_partially_blocked }}
-      cves_not_blocked: ${{ steps.report.outputs.cves_not_blocked }}
+      slack_payload: ${{ steps.report.outputs.slack_payload }}
     steps:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -69,9 +64,13 @@ jobs:
         id: report
         # Exits non-zero when too many requests got an upstream error instead of a
         # verdict, which turns the summary notification into a failure alert.
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           go build
           ./project-seaweed -o output >> "$GITHUB_OUTPUT"
+          # One line of Block Kit, so it travels as a job output.
+          echo "slack_payload=$(./project-seaweed -o output -f slack --run-url "$RUN_URL")" >> "$GITHUB_OUTPUT"
 
   slack-notification:
     name: Send notification
@@ -79,12 +78,6 @@ jobs:
     needs: scan
     if: always()
     env:
-      total_requests: ${{ needs.scan.outputs.total_requests }}
-      total_errored: ${{ needs.scan.outputs.total_errored }}
-      cves_tested: ${{ needs.scan.outputs.cves_tested }}
-      cves_blocked: ${{ needs.scan.outputs.cves_blocked }}
-      cves_partially_blocked: ${{ needs.scan.outputs.cves_partially_blocked }}
-      cves_not_blocked: ${{ needs.scan.outputs.cves_not_blocked }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - name: Success
@@ -93,45 +86,10 @@ jobs:
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
+          # Built by `seaweed -f slack`, so the layout is testable rather than assembled
+          # from workflow expressions.
           payload: |
-            {
-            "text": "Testing finished!",
-            "attachments": [
-              {
-                "color": "28a745",
-                "fields": [
-                  {
-                    "title": "Status",
-                    "value": "Complete"
-                  },
-                  {
-                    "title": "CVEs tested",
-                    "value": "${{ env.cves_tested }}"
-                  },
-                  {
-                    "title": "CVEs blocked",
-                    "value": "${{ env.cves_blocked }}"
-                  },
-                  {
-                    "title": "CVEs partially blocked",
-                    "value": "${{ env.cves_partially_blocked }}"
-                  },
-                  {
-                    "title": "CVEs not blocked",
-                    "value": "${{ env.cves_not_blocked }}"
-                  },
-                  {
-                    "title": "requests sent",
-                    "value": "${{ env.total_requests }}"
-                  },
-                  {
-                    "title": "upstream errors",
-                    "value": "${{ env.total_errored }}"
-                  }
-                ]
-              }
-              ]
-            }
+            ${{ needs.scan.outputs.slack_payload }}
 
       # A cancelled run stays silent; someone stopped it on purpose.
       - name: Failure
@@ -142,12 +100,27 @@ jobs:
           webhook-type: incoming-webhook
           payload: |
             {
-            "text": "WAF testing failed",
+            "text": "WAF test failed",
             "attachments": [
               {
-                "color": "d73a49",
-                "mrkdwn_in": ["text"],
-                "text": "The scan or the report failed, so there are no results this week. <${{ env.run_url }}|View the run>"
+                "color": "#d73a49",
+                "blocks": [
+                  {
+                    "type": "header",
+                    "text": { "type": "plain_text", "text": "WAF test failed", "emoji": true }
+                  },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "The scan or the report failed, so there are no results this week."
+                    }
+                  },
+                  {
+                    "type": "context",
+                    "elements": [{ "type": "mrkdwn", "text": "<${{ env.run_url }}|view the run>" }]
+                  }
+                ]
               }
               ]
             }
