@@ -26,7 +26,16 @@ jobs:
           docker compose up --exit-code-from nuclei
 
       - name: zip output
-        run: zip -qq -r output.zip output
+        # Nuclei creates its trace directory as root with mode 0700, so the runner
+        # cannot read it and `zip -qq` skips it without a word, leaving an empty
+        # archive. Fail here if the scan produced nothing, rather than three jobs later.
+        run: |
+          sudo chmod -R a+rX output
+          test -n "$(find output -name '*.txt' -print -quit)" || {
+            echo "::error::the scan produced no trace files"
+            exit 1
+          }
+          zip -qq -r output.zip output
 
       - name: GitHub Workflow artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

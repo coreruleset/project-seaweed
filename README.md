@@ -162,6 +162,13 @@ Now run the reporting tool:
 
 `./project-seaweed -o output`
 
+On Linux, Nuclei writes `output/http` as root with mode 0700, so your user cannot read it and the report comes back
+empty. Fix the permissions once after each scan:
+
+```
+sudo chmod -R a+rX output
+```
+
 ## Development
 
 ```
