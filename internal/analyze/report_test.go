@@ -21,37 +21,39 @@ func TestBuildReportPutsEachCVEInExactlyOneBucket(t *testing.T) {
 	}{
 		{
 			name:    "every request blocked",
-			result:  reader.NucleiTraceOutput{CVENumber: "CVE-1", TotalRequests: 2, BlockedRequests: 2},
+			result:  reader.NucleiTraceOutput{Exercised: true, CVENumber: "CVE-1", TotalRequests: 2, BlockedRequests: 2},
 			blocked: []string{"CVE-1"},
 		},
 		{
 			name:     "no request blocked",
-			result:   reader.NucleiTraceOutput{CVENumber: "CVE-2", TotalRequests: 2, NotBlockedRequests: 2},
+			result:   reader.NucleiTraceOutput{Exercised: true, CVENumber: "CVE-2", TotalRequests: 2, NotBlockedRequests: 2},
 			notBlckd: []string{"CVE-2"},
 		},
 		{
 			name: "some stages blocked",
 			result: reader.NucleiTraceOutput{
-				CVENumber: "CVE-3", TotalRequests: 3, BlockedRequests: 1, NotBlockedRequests: 2,
+				Exercised: true, CVENumber: "CVE-3", TotalRequests: 3,
+				BlockedRequests: 1, NotBlockedRequests: 2,
 			},
 			partial: []string{"CVE-3"},
 		},
 		{
 			name:    "no verdict at all",
-			result:  reader.NucleiTraceOutput{CVENumber: "CVE-4", TotalRequests: 2, ErroredRequests: 2},
+			result:  reader.NucleiTraceOutput{Exercised: true, CVENumber: "CVE-4", TotalRequests: 2, ErroredRequests: 2},
 			errored: []string{"CVE-4"},
 		},
 		{
 			// An upstream error alongside a real block is still a real block.
 			name: "errors alongside verdicts do not hide the verdicts",
 			result: reader.NucleiTraceOutput{
-				CVENumber: "CVE-5", TotalRequests: 3, BlockedRequests: 2, ErroredRequests: 1,
+				Exercised: true, CVENumber: "CVE-5", TotalRequests: 3,
+				BlockedRequests: 2, ErroredRequests: 1,
 			},
 			blocked: []string{"CVE-5"},
 		},
 		{
 			name:    "a trace with no responses is not a measurement",
-			result:  reader.NucleiTraceOutput{CVENumber: "CVE-6"},
+			result:  reader.NucleiTraceOutput{Exercised: true, CVENumber: "CVE-6"},
 			errored: []string{"CVE-6"},
 		},
 	}
@@ -63,7 +65,7 @@ func TestBuildReportPutsEachCVEInExactlyOneBucket(t *testing.T) {
 			assert.Equal(t, tt.blocked, report.CVEsBlocked)
 			assert.Equal(t, tt.partial, report.CVEsPartially)
 			assert.Equal(t, tt.notBlckd, report.CVEsNotBlocked)
-			assert.Equal(t, tt.errored, report.CVEsErrored)
+			assert.Equal(t, tt.errored, report.CVEsNoVerdict)
 			assert.Equal(t, 1, report.CVEsTested())
 		})
 	}
@@ -127,7 +129,7 @@ func TestBlockRate(t *testing.T) {
 	}{
 		{
 			name:   "nothing reached a verdict",
-			report: GlobalReport{CVEsErrored: []string{"CVE-1"}},
+			report: GlobalReport{CVEsNoVerdict: []string{"CVE-1"}},
 		},
 		{
 			name:   "everything blocked",
@@ -144,7 +146,7 @@ func TestBlockRate(t *testing.T) {
 			name: "errored CVEs are excluded from the denominator",
 			report: GlobalReport{
 				CVEsBlocked: []string{"CVE-1"}, CVEsNotBlocked: []string{"CVE-2"},
-				CVEsErrored: []string{"CVE-3", "CVE-4"},
+				CVEsNoVerdict: []string{"CVE-3", "CVE-4"},
 			},
 			want: 0.5, ok: true,
 		},
@@ -175,7 +177,7 @@ func TestSlackPayloadIsValidBlockKit(t *testing.T) {
 		CVEsBlocked:    []string{"CVE-1", "CVE-2"},
 		CVEsPartially:  []string{"CVE-3"},
 		CVEsNotBlocked: []string{"CVE-4"},
-		CVEsErrored:    []string{"CVE-5"},
+		CVEsNoVerdict:  []string{"CVE-5"},
 	}
 
 	encoded, err := json.Marshal(SlackPayload(report, "https://example.test/run/1"))
@@ -204,4 +206,39 @@ func TestSlackPayloadWithoutRunURL(t *testing.T) {
 	encoded, err := json.Marshal(SlackPayload(GlobalReport{CVEsBlocked: []string{"CVE-1"}}, ""))
 	require.NoError(t, err)
 	assert.NotContains(t, string(encoded), "view the run")
+}
+
+func TestBuildReportSeparatesUnexercisedCVEs(t *testing.T) {
+	report := BuildReport([]reader.NucleiTraceOutput{
+		// Detection step answered 200 and the template stopped there.
+		{CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1, Exercised: false},
+		{CVENumber: "CVE-2", TotalRequests: 1, NotBlockedRequests: 1, Exercised: true},
+	})
+
+	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised)
+	assert.Equal(t, []string{"CVE-2"}, report.CVEsNotBlocked)
+
+	// An untested CVE must not drag the block rate down.
+	rate, ok := report.BlockRate()
+	require.True(t, ok)
+	assert.InDelta(t, 0.0, rate, 0.0001)
+
+	blocked := BuildReport([]reader.NucleiTraceOutput{
+		{CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1, Exercised: false},
+		{CVENumber: "CVE-2", TotalRequests: 1, BlockedRequests: 1, Exercised: true},
+	})
+	rate, ok = blocked.BlockRate()
+	require.True(t, ok)
+	assert.InDelta(t, 1.0, rate, 0.0001, "one tested CVE, blocked, is a 100% block rate")
+}
+
+func TestBuildReportCountsRejectedRequests(t *testing.T) {
+	report := BuildReport([]reader.NucleiTraceOutput{
+		{CVENumber: "CVE-1", TotalRequests: 2, BlockedRequests: 1, RejectedRequests: 1, Exercised: true},
+	})
+
+	assert.Equal(t, uint(1), report.TotalRejected)
+	// Rejected requests are not verdicts, so the CVE is fully blocked, not partial.
+	assert.Equal(t, []string{"CVE-1"}, report.CVEsBlocked)
+	assert.Empty(t, report.CVEsPartially)
 }

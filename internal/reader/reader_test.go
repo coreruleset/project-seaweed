@@ -1,6 +1,8 @@
 package reader
 
 import (
+	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,24 +26,29 @@ func TestParseNucleiTraceOutput(t *testing.T) {
 		{
 			name: "a 403 means the WAF blocked it",
 			file: "blocked.txt",
-			want: NucleiTraceOutput{CVENumber: "CVE-2009-1496", TotalRequests: 1, BlockedRequests: 1},
+			want: NucleiTraceOutput{
+				CVENumber: "CVE-2009-1496", TotalRequests: 1, BlockedRequests: 1, Exercised: true,
+			},
 		},
 		{
 			name: "a multi-stage attack counts each stage",
 			file: "partial.txt",
 			want: NucleiTraceOutput{
-				CVENumber: "CVE-2023-34362", TotalRequests: 3, BlockedRequests: 1, NotBlockedRequests: 2,
+				CVENumber: "CVE-2023-34362", TotalRequests: 3, BlockedRequests: 1,
+				NotBlockedRequests: 1, RejectedRequests: 1, Exercised: true,
 			},
 		},
 		{
 			name: "an unreachable backend is an error, not a pass",
 			file: "errored.txt",
-			want: NucleiTraceOutput{CVENumber: "CVE-2021-32682", TotalRequests: 1, ErroredRequests: 1},
+			want: NucleiTraceOutput{
+				CVENumber: "CVE-2021-32682", TotalRequests: 1, ErroredRequests: 1, Exercised: true,
+			},
 		},
 		{
 			name: "a clustered trace has no CVE to attribute requests to",
 			file: "cluster.txt",
-			want: NucleiTraceOutput{TotalRequests: 1, BlockedRequests: 1},
+			want: NucleiTraceOutput{TotalRequests: 1, BlockedRequests: 1, Exercised: true},
 		},
 	}
 
@@ -138,4 +145,67 @@ func TestParseNucleiOutputDirectoryMergesRunsOfTheSameCVE(t *testing.T) {
 func TestParseNucleiOutputDirectoryFailsOnMissingPath(t *testing.T) {
 	_, err := ParseNucleiOutputDirectory(filepath.Join(t.TempDir(), "nope"))
 	require.Error(t, err)
+}
+
+// A template that only ever probes the root was never exercised: its detection step did
+// not match, so the payload step never ran and the WAF was never asked about the CVE.
+func TestExercisedTracksWhetherAPayloadWasSent(t *testing.T) {
+	tests := []struct {
+		name  string
+		trace string
+		want  bool
+	}{
+		{
+			name:  "only a bare root probe",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET / HTTP/1.1\n",
+		},
+		{
+			name:  "a payload path",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080/x\nGET /wp-admin/x.php HTTP/1.1\n",
+			want:  true,
+		},
+		{
+			name:  "a payload in the query string of the root",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080/\nGET /?s=<script> HTTP/1.1\n",
+			want:  true,
+		},
+		{
+			name: "root probe first, payload second",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET / HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP request for http://crs:8080/x\nPOST /upload.php HTTP/1.1\n",
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "trace.txt")
+			require.NoError(t, os.WriteFile(file, []byte(tt.trace), 0o600))
+
+			got, err := parseNucleiTraceOutput(file)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got.Exercised)
+		})
+	}
+}
+
+// Apache answers these before the backend sees the payload, so they are neither a WAF
+// block nor the WAF letting an attack through.
+func TestRejectedStatusesAreNotVerdicts(t *testing.T) {
+	for _, status := range []int{400, 404, 405} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			trace := "[CVE-1111-1] Dumped HTTP request for http://crs:8080/x\n" +
+				"GET /x HTTP/1.1\n" +
+				fmt.Sprintf("HTTP/1.1 %d Rejected\n", status)
+
+			file := filepath.Join(t.TempDir(), "trace.txt")
+			require.NoError(t, os.WriteFile(file, []byte(trace), 0o600))
+
+			got, err := parseNucleiTraceOutput(file)
+			require.NoError(t, err)
+			assert.Equal(t, uint(1), got.RejectedRequests)
+			assert.Zero(t, got.NotBlockedRequests)
+			assert.Zero(t, got.BlockedRequests)
+		})
+	}
 }
