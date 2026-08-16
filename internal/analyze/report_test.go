@@ -1,6 +1,8 @@
 package analyze
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/coreruleset/project-seaweed/internal/reader"
@@ -114,4 +116,92 @@ func TestValidate(t *testing.T) {
 			require.ErrorContains(t, err, tt.wantErr)
 		})
 	}
+}
+
+func TestBlockRate(t *testing.T) {
+	tests := []struct {
+		name   string
+		report GlobalReport
+		want   float64
+		ok     bool
+	}{
+		{
+			name:   "nothing reached a verdict",
+			report: GlobalReport{CVEsErrored: []string{"CVE-1"}},
+		},
+		{
+			name:   "everything blocked",
+			report: GlobalReport{CVEsBlocked: []string{"CVE-1", "CVE-2"}},
+			want:   1, ok: true,
+		},
+		{
+			name:   "nothing blocked",
+			report: GlobalReport{CVEsNotBlocked: []string{"CVE-1"}},
+			want:   0, ok: true,
+		},
+		{
+			// CVEs with no verdict must not dilute the rate.
+			name: "errored CVEs are excluded from the denominator",
+			report: GlobalReport{
+				CVEsBlocked: []string{"CVE-1"}, CVEsNotBlocked: []string{"CVE-2"},
+				CVEsErrored: []string{"CVE-3", "CVE-4"},
+			},
+			want: 0.5, ok: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := tt.report.BlockRate()
+			assert.Equal(t, tt.ok, ok)
+			assert.InDelta(t, tt.want, got, 0.0001)
+		})
+	}
+}
+
+func TestBar(t *testing.T) {
+	assert.Equal(t, strings.Repeat("░", barCells), bar(0))
+	assert.Equal(t, strings.Repeat("█", barCells), bar(1))
+	assert.Equal(t, strings.Repeat("█", 10)+strings.Repeat("░", 10), bar(0.5))
+	// Every bar is the same width, whatever the rounding does.
+	for percent := 0; percent <= 100; percent++ {
+		assert.Equal(t, barCells, len([]rune(bar(float64(percent)/100))), "at %d%%", percent)
+	}
+}
+
+func TestSlackPayloadIsValidBlockKit(t *testing.T) {
+	report := GlobalReport{
+		TotalRequests: 100, TotalErrored: 4,
+		CVEsBlocked:    []string{"CVE-1", "CVE-2"},
+		CVEsPartially:  []string{"CVE-3"},
+		CVEsNotBlocked: []string{"CVE-4"},
+		CVEsErrored:    []string{"CVE-5"},
+	}
+
+	encoded, err := json.Marshal(SlackPayload(report, "https://example.test/run/1"))
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "\n", "must stay on one line for a job output")
+
+	var payload struct {
+		Text        string `json:"text"`
+		Attachments []struct {
+			Color  string `json:"color"`
+			Blocks []struct {
+				Type string `json:"type"`
+			} `json:"blocks"`
+		} `json:"attachments"`
+	}
+	require.NoError(t, json.Unmarshal(encoded, &payload))
+	assert.Equal(t, "WAF test: 50% of CVEs blocked", payload.Text)
+	require.Len(t, payload.Attachments, 1)
+	assert.Equal(t, completedColour, payload.Attachments[0].Color)
+	require.Len(t, payload.Attachments[0].Blocks, 4)
+	assert.Equal(t, "header", payload.Attachments[0].Blocks[0].Type)
+	assert.Contains(t, string(encoded), "view the run")
+}
+
+func TestSlackPayloadWithoutRunURL(t *testing.T) {
+	encoded, err := json.Marshal(SlackPayload(GlobalReport{CVEsBlocked: []string{"CVE-1"}}, ""))
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "view the run")
 }

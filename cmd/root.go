@@ -14,11 +14,13 @@ type FormatMode enumflag.Flag
 const (
 	GitHub FormatMode = iota
 	JSON
+	Slack
 )
 
 var FormatModeIds = map[FormatMode][]string{
 	GitHub: {"github"},
 	JSON:   {"json"},
+	Slack:  {"slack"},
 }
 
 func Execute() error {
@@ -39,7 +41,9 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.PersistentFlags().StringVarP(output, "output", "o", ".", "path to find output trace files")
 	rootCmd.PersistentFlags().VarP(enumflag.New(&formatMode, "format", FormatModeIds, enumflag.EnumCaseInsensitive),
 		"format", "f",
-		"format to output the results; can be 'github' (default) or 'json'")
+		"format to output the results; can be 'github' (default), 'json' or 'slack'")
+	rootCmd.PersistentFlags().String("run-url", "",
+		"link to include in the slack message, usually the CI run")
 
 	rootCmd.AddCommand(newGenMockCommand())
 
@@ -48,7 +52,8 @@ func NewRootCommand() *cobra.Command {
 
 func runE(cmd *cobra.Command, _ []string) error {
 	path, _ := cmd.Flags().GetString("output")
+	runURL, _ := cmd.Flags().GetString("run-url")
 	format := cmd.PersistentFlags().Lookup("format").Value.String()
 
-	return analyze.ReportNucleiBlocks(path, format)
+	return analyze.ReportNucleiBlocks(path, format, runURL)
 }

@@ -51,9 +51,12 @@ Available Commands:
   help        Help about any command
 
 Flags:
-  -f, --format format   format to output the results; can be 'github' (default) or 'json' (default github)
-  -h, --help            help for seaweed
-  -o, --output string   path to find output trace files (default ".")
+  -f, --format format    format to output the results; can be 'github' (default), 'json' or 'slack' (default github)
+  -h, --help             help for seaweed
+  -o, --output string    path to find output trace files (default ".")
+      --run-url string   link to include in the slack message, usually the CI run
+
+Use "seaweed [command] --help" for more information about a command.
 ```
 
 Which CVEs get tested is a property of the scan, not the reporter. Set `SEAWEED_TAGS` to override the Nuclei tags in
@@ -122,6 +125,12 @@ The `json` format writes the same counters plus the CVE ids in each bucket:
 ❯ ./project-seaweed -o output -f json
 ```
 
+The `slack` format writes a Block Kit message on a single line, which the workflow carries in a job output:
+
+```
+❯ ./project-seaweed -o output -f slack --run-url "$RUN_URL"
+```
+
 4. **Scan History**
 
 The recommended usage of this tool is in a CI/CD environment like GitHub Actions. The workflow runs weekly against the
@@ -129,11 +138,24 @@ tags listed in `docker-compose.yml` — xss, rce, sqli and the other common web 
 
 5. **Slack integration**
 
-After the testing is finished, a message is sent to the defined channel on slack with a small summary: CVEs tested,
-CVEs blocked, CVEs partially blocked, CVEs not blocked, requests sent, and upstream errors.
+After the testing is finished, a message is sent to the defined channel on slack. It leads with the block rate — the
+share of CVEs the WAF blocked outright, out of those it reached any verdict on — as a headline and a bar, then the
+per-bucket counts:
+
+```
+WAF test: 50% of CVEs blocked
+`██████████░░░░░░░░░░`  50%
+
+Blocked  987          Partially blocked  126
+Not blocked  876      No verdict  8
+
+1997 CVEs tested · 7673 requests · 1155 upstream errors · view the run
+```
+
+The layout is built by `seaweed -f slack`, so it is covered by tests rather than assembled from workflow expressions.
 
 A run that fails — because the environment never came up, because the scan produced nothing, or because too much of it
-errored — sends an alert linking to the logs instead of a summary of a scan that measured nothing. A cancelled run
+errored — sends a red alert linking to the logs instead of a summary of a scan that measured nothing. A cancelled run
 stays silent.
 
 6. **Report comparison**
