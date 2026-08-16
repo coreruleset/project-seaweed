@@ -209,3 +209,62 @@ func TestRejectedStatusesAreNotVerdicts(t *testing.T) {
 		})
 	}
 }
+
+// The whole point of reading the body: two identical status codes, opposite meanings.
+// Apache refusing an encoded slash and an application saying "no such page" are both
+// 404, and only the backend marker separates them.
+func TestTheSameStatusMeansDifferentThingsDependingOnDelivery(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		wantRejected uint
+		wantAllowed  uint
+	}{
+		{
+			name:        "404 from the application, which the payload reached",
+			body:        "<html>not found - " + BackendMarker + "</html>\n",
+			wantAllowed: 1,
+		},
+		{
+			name:         "404 from Apache, which refused it first",
+			body:         "<html><title>404 Not Found</title></html>\n",
+			wantRejected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			trace := "[CVE-1111-1] Dumped HTTP request for http://crs:8080/x\n" +
+				"GET /x HTTP/1.1\n" +
+				"\n[CVE-1111-1] Dumped HTTP response http://crs:8080/x\n" +
+				"HTTP/1.1 404 Not Found\n\n" + tt.body
+
+			file := filepath.Join(t.TempDir(), "trace.txt")
+			require.NoError(t, os.WriteFile(file, []byte(trace), 0o600))
+
+			got, err := parseNucleiTraceOutput(file)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantRejected, got.RejectedRequests)
+			assert.Equal(t, tt.wantAllowed, got.NotBlockedRequests)
+		})
+	}
+}
+
+// A marker in one response body must not leak onto the next request's verdict.
+func TestDeliveryIsDecidedPerResponse(t *testing.T) {
+	trace := "[CVE-1111-1] Dumped HTTP response http://crs:8080/a\n" +
+		"HTTP/1.1 200 OK\n\nhello " + BackendMarker + "\n" +
+		"[CVE-1111-1] Dumped HTTP request for http://crs:8080/b\n" +
+		"GET /b HTTP/1.1\n" +
+		"[CVE-1111-1] Dumped HTTP response http://crs:8080/b\n" +
+		"HTTP/1.1 404 Not Found\n\n<title>404 Not Found</title>\n"
+
+	file := filepath.Join(t.TempDir(), "trace.txt")
+	require.NoError(t, os.WriteFile(file, []byte(trace), 0o600))
+
+	got, err := parseNucleiTraceOutput(file)
+	require.NoError(t, err)
+	assert.Equal(t, uint(2), got.TotalRequests)
+	assert.Equal(t, uint(1), got.NotBlockedRequests, "the 200 reached the backend")
+	assert.Equal(t, uint(1), got.RejectedRequests, "the 404 did not")
+}
