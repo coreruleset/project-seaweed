@@ -39,6 +39,8 @@ func NewRootCommand() *cobra.Command {
 		"format", "f",
 		"format to output the results; can be 'github' (default) or 'json'")
 
+	rootCmd.AddCommand(newGenMockCommand())
+
 	return rootCmd
 }
 
