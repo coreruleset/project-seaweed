@@ -22,14 +22,16 @@ const maxErrorRate = 0.1
 // CVE lists: fully blocked, partially blocked, not blocked at all, or no verdict because
 // every one of its requests hit an upstream error.
 type GlobalReport struct {
-	TotalRequests   uint
-	TotalBlocked    uint
-	TotalNotBlocked uint
-	TotalErrored    uint
-	CVEsBlocked     []string
-	CVEsPartially   []string
-	CVEsNotBlocked  []string
-	CVEsErrored     []string
+	TotalRequests    uint
+	TotalBlocked     uint
+	TotalNotBlocked  uint
+	TotalErrored     uint
+	TotalRejected    uint
+	CVEsBlocked      []string
+	CVEsPartially    []string
+	CVEsNotBlocked   []string
+	CVEsNoVerdict    []string
+	CVEsNotExercised []string
 }
 
 const (
@@ -64,11 +66,18 @@ func BuildReport(results []reader.NucleiTraceOutput) GlobalReport {
 		report.TotalBlocked += result.BlockedRequests
 		report.TotalNotBlocked += result.NotBlockedRequests
 		report.TotalErrored += result.ErroredRequests
+		report.TotalRejected += result.RejectedRequests
 
 		verdicts := result.BlockedRequests + result.NotBlockedRequests
 		switch {
+		case !result.Exercised:
+			// The payload step never ran, so this CVE was not tested at all. Counting it
+			// as "not blocked" blames the WAF for an attack nobody sent.
+			report.CVEsNotExercised = append(report.CVEsNotExercised, result.CVENumber)
 		case verdicts == 0:
-			report.CVEsErrored = append(report.CVEsErrored, result.CVENumber)
+			// Every request either errored upstream or was rejected before the backend,
+			// so the WAF never answered for this CVE.
+			report.CVEsNoVerdict = append(report.CVEsNoVerdict, result.CVENumber)
 		case result.BlockedRequests == verdicts:
 			report.CVEsBlocked = append(report.CVEsBlocked, result.CVENumber)
 		case result.BlockedRequests == 0:
@@ -100,7 +109,8 @@ func (r GlobalReport) Validate() error {
 
 // CVEsTested is the number of CVEs the run has any trace of.
 func (r GlobalReport) CVEsTested() int {
-	return len(r.CVEsBlocked) + len(r.CVEsPartially) + len(r.CVEsNotBlocked) + len(r.CVEsErrored)
+	return len(r.CVEsBlocked) + len(r.CVEsPartially) + len(r.CVEsNotBlocked) +
+		len(r.CVEsNoVerdict) + len(r.CVEsNotExercised)
 }
 
 // BlockRate is the share of CVEs the WAF blocked outright, out of those it reached any
@@ -132,8 +142,11 @@ func SlackPayload(report GlobalReport, runURL string) map[string]any {
 		summary = fmt.Sprintf("`%s`  *%d%%*", bar(rate), percent)
 	}
 
-	context := fmt.Sprintf("%d CVEs tested  ·  %d requests  ·  %d upstream errors",
-		report.CVEsTested(), report.TotalRequests, report.TotalErrored)
+	context := fmt.Sprintf(
+		"%d CVEs seen  ·  %d requests  ·  %d rejected by the server  ·  %d upstream errors  ·  %d with no verdict",
+		report.CVEsTested(), report.TotalRequests, report.TotalRejected,
+		report.TotalErrored, len(report.CVEsNoVerdict),
+	)
 	if runURL != "" {
 		context += fmt.Sprintf("  ·  <%s|view the run>", runURL)
 	}
@@ -159,7 +172,7 @@ func SlackPayload(report GlobalReport, runURL string) map[string]any {
 						slackField("Blocked", len(report.CVEsBlocked)),
 						slackField("Partially blocked", len(report.CVEsPartially)),
 						slackField("Not blocked", len(report.CVEsNotBlocked)),
-						slackField("No verdict", len(report.CVEsErrored)),
+						slackField("Not exercised", len(report.CVEsNotExercised)),
 					},
 				},
 				map[string]any{
@@ -205,11 +218,13 @@ func printReport(report GlobalReport, format string, runURL string) error {
 	fmt.Printf("total_blocked=%d\n", report.TotalBlocked)
 	fmt.Printf("total_not_blocked=%d\n", report.TotalNotBlocked)
 	fmt.Printf("total_errored=%d\n", report.TotalErrored)
+	fmt.Printf("total_rejected=%d\n", report.TotalRejected)
 	fmt.Printf("cves_tested=%d\n", report.CVEsTested())
 	fmt.Printf("cves_blocked=%d\n", len(report.CVEsBlocked))
 	fmt.Printf("cves_partially_blocked=%d\n", len(report.CVEsPartially))
 	fmt.Printf("cves_not_blocked=%d\n", len(report.CVEsNotBlocked))
-	fmt.Printf("cves_errored=%d\n", len(report.CVEsErrored))
+	fmt.Printf("cves_no_verdict=%d\n", len(report.CVEsNoVerdict))
+	fmt.Printf("cves_not_exercised=%d\n", len(report.CVEsNotExercised))
 
 	return nil
 }

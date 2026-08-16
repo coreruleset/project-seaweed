@@ -96,27 +96,43 @@ See [docs/adr](docs/adr) for why.
 Nuclei writes one trace file per CVE into `output/`, holding every request it sent and every response it got.
 `seaweed -o output` reads them.
 
-Every CVE ends up in exactly one bucket: fully blocked, partially blocked when only some stages of a multi-stage attack
-were stopped, not blocked, or errored.
+Every CVE ends up in exactly one bucket:
 
-Errored means the reverse proxy answered about itself — `408`, `500`, `502`, `503`, `504` — so the WAF never reached a
-verdict on the payload. Those are counted separately rather than as "the WAF let it through", and seaweed exits
-non-zero when more than 10% of a run errored, or when no trace files were found at all, because such a run does not
-measure blocking.
+| bucket | meaning |
+| --- | --- |
+| blocked | every request the WAF judged, it blocked |
+| partially blocked | only some stages of a multi-stage attack were stopped |
+| not blocked | the payload reached the backend |
+| not exercised | the template never sent anything but a bare `GET /`, so its payload step never ran and the WAF was never asked |
+| no verdict | none of its requests reached the backend or got an answer from it |
+
+Only three of those describe the WAF. A request can also be:
+
+- **errored** — `408`, `500`, `502`, `503`, `504`: the reverse proxy answering about itself. Seaweed exits non-zero
+  when more than 10% of a run errored, or when no trace files were found, because such a run does not measure blocking.
+- **rejected** — `400`, `404`, `405`: the server in front of the backend refused the request before the payload landed.
+  The bundled mock answers `200` on every path and method, so under `docker compose up` anything here came from Apache
+  — a malformed request, or an encoded slash, which Apache rejects during URI translation before ModSecurity's phase 2
+  blocking rule can act. Point seaweed at a different backend, where `404` is an ordinary answer, and this will
+  over-count.
+
+Neither is a verdict, so neither counts for or against the WAF, and neither is in the block rate.
 
 The `github` format writes `key=value` pairs meant for `$GITHUB_OUTPUT`:
 
 ```
 ❯ ./project-seaweed -o output
-total_requests=72
-total_blocked=35
-total_not_blocked=37
-total_errored=0
-cves_tested=42
-cves_blocked=12
-cves_partially_blocked=17
-cves_not_blocked=13
-cves_errored=0
+total_requests=3775
+total_blocked=2388
+total_not_blocked=1249
+total_errored=2
+total_rejected=136
+cves_tested=2710
+cves_blocked=1588
+cves_partially_blocked=295
+cves_not_blocked=533
+cves_no_verdict=100
+cves_not_exercised=194
 ```
 
 The `json` format writes the same counters plus the CVE ids in each bucket:
@@ -143,13 +159,13 @@ share of CVEs the WAF blocked outright, out of those it reached any verdict on �
 per-bucket counts:
 
 ```
-WAF test: 50% of CVEs blocked
-`██████████░░░░░░░░░░`  50%
+WAF test: 66% of CVEs blocked
+`█████████████░░░░░░░`  66%
 
-Blocked  987          Partially blocked  126
-Not blocked  876      No verdict  8
+Blocked  1588         Partially blocked  295
+Not blocked  533      Not exercised  194
 
-1997 CVEs tested · 7673 requests · 1155 upstream errors · view the run
+2710 CVEs seen · 3775 requests · 136 rejected by the server · 2 upstream errors · 100 with no verdict · view the run
 ```
 
 The layout is built by `seaweed -f slack`, so it is covered by tests rather than assembled from workflow expressions.

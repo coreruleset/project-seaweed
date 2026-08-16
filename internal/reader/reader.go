@@ -23,6 +23,9 @@ var (
 	tracePattern = regexp.MustCompile(`^\[(CVE-\d{4}-\d+)\] Dumped HTTP `)
 
 	responsePattern = regexp.MustCompile(`^HTTP/1\.1\s(\d{3})`)
+
+	// The request line of a dumped request, e.g. "GET /wp-admin/x.php?a=1 HTTP/1.1".
+	requestPattern = regexp.MustCompile(`^[A-Z]+ (\S+) HTTP/1\.1`)
 )
 
 // upstreamErrorStatuses are answers the reverse proxy gives about itself rather than
@@ -34,6 +37,18 @@ var upstreamErrorStatuses = map[int]bool{
 	http.StatusBadGateway:          true,
 	http.StatusServiceUnavailable:  true,
 	http.StatusGatewayTimeout:      true,
+}
+
+// rejectedStatuses are refusals by the server in front of the backend, before the
+// payload could land. The bundled mock answers 200 on every path and every method, so
+// under `docker compose up` anything here came from Apache, not from the application:
+// 400 for a malformed request, and 404 for an encoded slash, which Apache rejects during
+// URI translation before ModSecurity's phase 2 blocking rule can act. A run against some
+// other backend, where 404 is an ordinary application answer, will over-count this.
+var rejectedStatuses = map[int]bool{
+	http.StatusBadRequest:       true,
+	http.StatusNotFound:         true,
+	http.StatusMethodNotAllowed: true,
 }
 
 // ParseNucleiOutputDirectory reads every trace file under path and returns one result
@@ -66,6 +81,8 @@ func ParseNucleiOutputDirectory(path string) ([]NucleiTraceOutput, error) {
 			merged.BlockedRequests += trace.BlockedRequests
 			merged.NotBlockedRequests += trace.NotBlockedRequests
 			merged.ErroredRequests += trace.ErroredRequests
+			merged.RejectedRequests += trace.RejectedRequests
+			merged.Exercised = merged.Exercised || trace.Exercised
 		} else {
 			byCVE[trace.CVENumber] = &trace
 		}
@@ -123,6 +140,16 @@ func countLine(trace *NucleiTraceOutput, line string) {
 		return
 	}
 
+	// A template whose every request is a bare "GET /" never sent a payload: its
+	// detection step did not match, so the WAF was never asked about this CVE.
+	if request := requestPattern.FindStringSubmatch(line); request != nil {
+		if request[1] != "/" {
+			trace.Exercised = true
+		}
+
+		return
+	}
+
 	found := responsePattern.FindStringSubmatch(line)
 	if found == nil {
 		return
@@ -138,6 +165,8 @@ func countLine(trace *NucleiTraceOutput, line string) {
 		trace.BlockedRequests++
 	case upstreamErrorStatuses[status]:
 		trace.ErroredRequests++
+	case rejectedStatuses[status]:
+		trace.RejectedRequests++
 	default:
 		trace.NotBlockedRequests++
 	}
