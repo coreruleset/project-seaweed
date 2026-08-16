@@ -33,6 +33,16 @@ jobs:
       - name: Test
         run: go test -race -cover ./...
 
+      - name: Check the mock backend is current
+        # mock/fingerprints.html is generated from the pinned templates. If it drifts,
+        # flow-gated templates quietly stop reaching their payload step and the WAF
+        # never sees those attacks.
+        run: |
+          ./scripts/fetch-templates.sh
+          go run . gen-mock
+          git diff --exit-code -- mock/fingerprints.html \
+            || { echo "::error::mock/fingerprints.html is stale; run scripts/fetch-templates.sh && go run . gen-mock"; exit 1; }
+
       - name: Lint Go
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
