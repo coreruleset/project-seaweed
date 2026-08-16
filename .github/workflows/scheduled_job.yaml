@@ -37,7 +37,7 @@ jobs:
         # backend, so a broken backend fails this job instead of silently scoring every
         # payload as "not blocked".
         run: |
-          mkdir -p output logs
+          mkdir -p output
           docker compose up --exit-code-from nuclei
 
       - name: zip output
@@ -45,7 +45,10 @@ jobs:
         # cannot read it and `zip -qq` skips it without a word, leaving an empty
         # archive. Fail here if the scan produced nothing, rather than at the report.
         run: |
-          sudo chmod -R a+rX output logs
+          sudo chmod -R a+rX output
+          mkdir -p logs
+          docker compose cp crs:/var/log/apache2/. logs/ \
+            || echo "::warning::no WAF logs to collect"
           test -n "$(find output -name '*.txt' -print -quit)" || {
             echo "::error::the scan produced no trace files"
             exit 1

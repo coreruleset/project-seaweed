@@ -195,8 +195,13 @@ directory is managed by the script and replaced wholesale.
 docker compose up
 ```
 
-This starts the containers and runs the tests. Trace files land in `output/`, and the WAF's own error and JSON audit
-logs — the latter carrying the CRS rule ids behind each block — land in `logs/`.
+This starts the containers and runs the tests. Trace files land in `output/`. The WAF's own error and JSON audit logs
+— the latter carrying the CRS rule ids behind each block — stay inside the container, because that directory has to be
+writable by the user Apache runs as. Copy them out afterwards:
+
+```
+docker compose cp crs:/var/log/apache2/. logs/
+```
 
 Now run the reporting tool:
 
@@ -206,7 +211,7 @@ On Linux, Nuclei writes `output/http` as root with mode 0700, so your user canno
 empty. Fix the permissions once after each scan:
 
 ```
-sudo chmod -R a+rX output logs
+sudo chmod -R a+rX output
 ```
 
 ## Development

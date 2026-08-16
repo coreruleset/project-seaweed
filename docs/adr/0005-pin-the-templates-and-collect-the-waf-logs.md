@@ -44,7 +44,11 @@ be generated from a different corpus than the scan uses. **CI enforces it**: it 
 the pinned templates, regenerates the page, and fails on any diff.
 
 **The WAF's logs go to files.** `ERRORLOG` and the audit log point into
-`/var/log/apache2`, which is bind-mounted to `logs/` and archived alongside the traces.
+`/var/log/apache2` inside the container, and are copied out with `docker compose cp` after
+the run and archived alongside the traces. That directory is deliberately *not*
+bind-mounted: the CRS image runs as uid 999, and a host directory mounted there belongs to
+the host user, so ModSecurity cannot create its audit log and Apache dies at config parse.
+Docker Desktop remaps bind-mount ownership, so this only fails on Linux.
 The audit log switches from `concurrent` to `Serial` — one JSON object per transaction in
 one file, rather than thousands of files — and its parts are trimmed to `ABHZ`:
 transaction, request headers, rule messages, terminator. The default also stores request
@@ -62,6 +66,8 @@ and response bodies, and the mock returns the same page every time.
   CRS rules, led by 949110 and 920273. That is the input the report needs to tell a CRS
   block from any other 403 — the work ADR 3 deferred.
 - Roughly 45 MB of logs per full weekly run, which compresses to a few MB in the artifact.
+- The logs are only available after the run, via `docker compose cp`, rather than
+  streaming to the host as they are written.
 - Renovate has to bump the pinned version, and that bump is now a reviewable
   change that moves the numbers, which is the point. CI will fail it until the
   fingerprint page is regenerated in the same PR.

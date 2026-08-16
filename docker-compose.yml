@@ -31,11 +31,12 @@ services:
       # Apache only
       SERVERNAME: _default_
       # Every rule match goes to the error log. Left on stderr it drowns the run's
-      # console output; in a file it is a collectable artifact instead.
+      # console output. These paths stay inside the container, whose /var/log/apache2 is
+      # owned by the httpd user it runs as; a bind mount there is owned by the host user
+      # instead and ModSecurity cannot create its audit log. Copy them out afterwards
+      # with `docker compose cp crs:/var/log/apache2/. logs/`.
       ERRORLOG: "/var/log/apache2/error.log"
     hostname: crs
-    volumes:
-      - ./logs:/var/log/apache2
     depends_on:
       mock:
         condition: service_healthy
