@@ -4,28 +4,37 @@
 
 image: Flaticon.com
 
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/coreruleset/project-seaweed/CI)]()
+[![Run Nuclei](https://github.com/coreruleset/project-seaweed/actions/workflows/scheduled_job.yaml/badge.svg)](https://github.com/coreruleset/project-seaweed/actions/workflows/scheduled_job.yaml)
 
 Project Seaweed was originally a part of **Google Summer of Code 2022** under the OWASP Foundation Core Rule Set team.
 Under the guidance of [Felipe Zipitría](https://github.com/fzipi).
 
-Seaweed is fully customizable CI/CD friendly tool created to automate the testing of web application firewalls against
-various CVE(s).
+Seaweed is a CI/CD friendly tool created to automate the testing of web application firewalls against various CVE(s).
 
 It does so by utilising the PoCs provided by [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
 from team [Project Discovery](https://github.com/projectdiscovery). Using these beautifully formatted yaml templates we
 can test firewalls as well as generate metadata for the firewall testing process. At the end of testing we receive a
 small summary notification in the form of a slack message.
 
-![](/images/flowchart_white_back.drawio.png)
+```mermaid
+flowchart TD
+    A[Weekly schedule or manual dispatch] --> B[docker compose up]
+    B --> C{Does a marker round-trip through the WAF?}
+    C -->|no| X[Run fails]
+    C -->|yes| D[Nuclei sends CVE payloads at CRS]
+    D --> E[Trace files uploaded as a workflow artifact]
+    E --> F[seaweed -o output]
+    F --> G{More than 10% upstream errors?}
+    G -->|yes| X
+    G -->|no| H[Per-CVE report]
+    H --> I[Slack summary]
+```
 
 ## Features
 
 1. **Parameters**
 
-There are two ways to modify the tool behaviour. You can either use the CLI flags or specify environment variables.
-
-**CLI:**
+`seaweed` reads Nuclei's trace files and reports on them. It takes no configuration beyond its flags:
 
 ```
 ❯ ./project-seaweed --help
@@ -33,11 +42,24 @@ Parses Nuclei test files output
 
 Usage:
   seaweed [flags]
+  seaweed [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  gen-mock    Generate the mock backend page from Nuclei flow-gated templates
+  help        Help about any command
 
 Flags:
   -f, --format format   format to output the results; can be 'github' (default) or 'json' (default github)
   -h, --help            help for seaweed
   -o, --output string   path to find output trace files (default ".")
+```
+
+Which CVEs get tested is a property of the scan, not the reporter. Set `SEAWEED_TAGS` to override the Nuclei tags in
+`docker-compose.yml`:
+
+```
+SEAWEED_TAGS=xss,sqli docker compose up
 ```
 
 2. **Docker Setup**
@@ -63,61 +85,88 @@ See [docs/adr](docs/adr) for why.
 
 3. **Report generation**
 
-After Nuclei has finished launching the attacks on the firewall, we store the requests and responses that were made. You
-can specify a directory if you want to see this raw data, otherwise it is stored inside a temporary directory.
+Nuclei writes one trace file per CVE into `output/`, holding every request it sent and every response it got.
+`seaweed -o output` reads them.
 
-We then use this data to figure out if the CVE is blocked or not. Every CVE ends up in exactly one bucket: fully
-blocked, partially blocked when only some stages of a multi-stage attack were stopped, not blocked, or errored.
+Every CVE ends up in exactly one bucket: fully blocked, partially blocked when only some stages of a multi-stage attack
+were stopped, not blocked, or errored.
 
 Errored means the reverse proxy answered about itself — `408`, `500`, `502`, `503`, `504` — so the WAF never reached a
 verdict on the payload. Those are counted separately rather than as "the WAF let it through", and seaweed exits
-non-zero when more than 10% of a run errored, because such a run does not measure blocking.
+non-zero when more than 10% of a run errored, or when no trace files were found at all, because such a run does not
+measure blocking.
 
-You can specify the report format to be either `github` (default) or `json`.
+The `github` format writes `key=value` pairs meant for `$GITHUB_OUTPUT`:
 
-5. **Scan History**
+```
+❯ ./project-seaweed -o output
+total_requests=72
+total_blocked=35
+total_not_blocked=37
+total_errored=0
+cves_tested=42
+cves_blocked=12
+cves_partially_blocked=17
+cves_not_blocked=13
+cves_errored=0
+```
 
-The recommended usage of this tool in a CI/CD environment like Github Actions.
-The github action tests various types of common web CVE(s) such as xss, rce, sqli etc. along with a full test of all the available CVE(s) in the nuclei templates.
+The `json` format writes the same counters plus the CVE ids in each bucket:
 
-6. **Slack integration**
+```
+❯ ./project-seaweed -o output -f json
+```
 
-After the testing is finished, a message is sent to the defined channel on slack with a small summary.
+4. **Scan History**
 
-![](/images/slack.png)
+The recommended usage of this tool is in a CI/CD environment like GitHub Actions. The workflow runs weekly against the
+tags listed in `docker-compose.yml` — xss, rce, sqli and the other common web CVE categories.
 
-7. **Report comparison**
+5. **Slack integration**
+
+After the testing is finished, a message is sent to the defined channel on slack with a small summary: CVEs tested,
+CVEs blocked, CVEs partially blocked, CVEs not blocked, requests sent, and upstream errors. A run that fails its error
+gate sends nothing, rather than a summary of a scan that measured nothing.
+
+6. **Report comparison**
 
 TBD
 
 ## Usage
 
-**Installation**
-
 1. **Clone the repository**
 
 `git clone https://github.com/coreruleset/project-seaweed.git`
 
-3. **Install docker**
+2. **Install docker**
 
-This project needs docker to setup a local web server, web application firewall. If you're using a custom waf URL for
-testing, then docker is not needed.
+This project needs docker to set up the local web server and web application firewall.
 
 [https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
 
-6. **Install the project**
+3. **Build the project**
 
 You need go installed on your system to build the project.
 
 `go build`
 
-7. **Finally run the project**
+4. **Run the scan**
 
 ```
 docker compose up
 ```
-This will start the docker containers and run the tests. The results will be by default in a folder called `output`.
 
-Now run the reporting tool using the following command:
+This starts the containers and runs the tests. Trace files land in `output/`.
+
+Now run the reporting tool:
 
 `./project-seaweed -o output`
+
+## Development
+
+```
+go test ./...        # unit tests
+go run . gen-mock    # regenerate the mock backend page
+```
+
+Architecture decisions, and the measurements behind them, are recorded in [docs/adr](docs/adr).
