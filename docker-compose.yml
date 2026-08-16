@@ -43,6 +43,8 @@ services:
     image: projectdiscovery/nuclei:latest@sha256:aa3a9c0894629405b5bbe644765dfffd6ff87b7663b5f1d64bcbc01341da335a
     hostname: nuclei
     container_name: nuclei
+    # -dc keeps nuclei from merging templates that send identical requests into one
+    # trace file headed by a cluster hash, whose requests cannot be attributed to a CVE.
     command: >-
       -u http://crs:8080
       -t http/cves
@@ -52,6 +54,7 @@ services:
       -ni
       -sresp
       -srd /output
+      -dc
     volumes:
       - ./output:/output:rw
     depends_on:

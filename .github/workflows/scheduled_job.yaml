@@ -40,9 +40,11 @@ jobs:
       needs: [project-runner]
       outputs:
         total_requests: ${{ steps.report.outputs.total_requests }}
-        total_blocked: ${{ steps.report.outputs.total_blocked }}
-        total_not_blocked: ${{ steps.report.outputs.total_not_blocked }}
-        partially_blocked: ${{ steps.report.outputs.partially_blocked }}
+        total_errored: ${{ steps.report.outputs.total_errored }}
+        cves_tested: ${{ steps.report.outputs.cves_tested }}
+        cves_blocked: ${{ steps.report.outputs.cves_blocked }}
+        cves_partially_blocked: ${{ steps.report.outputs.cves_partially_blocked }}
+        cves_not_blocked: ${{ steps.report.outputs.cves_not_blocked }}
       steps:
         - name: Checkout code
           uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -61,6 +63,8 @@ jobs:
 
         - name: Build report
           id: report
+          # Exits non-zero when too many requests got an upstream error instead of a
+          # verdict, which skips the notification rather than reporting a broken run.
           run: |
             go build
             unzip -qq output.zip
@@ -73,9 +77,11 @@ jobs:
    needs: process-artifacts
    env:
      total_requests: ${{ needs.process-artifacts.outputs.total_requests }}
-     total_blocked: ${{ needs.process-artifacts.outputs.total_blocked }}
-     total_not_blocked: ${{ needs.process-artifacts.outputs.total_not_blocked }}
-     partially_blocked: ${{ needs.process-artifacts.outputs.partially_blocked }}
+     total_errored: ${{ needs.process-artifacts.outputs.total_errored }}
+     cves_tested: ${{ needs.process-artifacts.outputs.cves_tested }}
+     cves_blocked: ${{ needs.process-artifacts.outputs.cves_blocked }}
+     cves_partially_blocked: ${{ needs.process-artifacts.outputs.cves_partially_blocked }}
+     cves_not_blocked: ${{ needs.process-artifacts.outputs.cves_not_blocked }}
    steps:
      - name: Success
        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
@@ -94,20 +100,28 @@ jobs:
                    "value": "Complete"
                  },
                  {
-                   "title": "total requests - cves tested",
+                   "title": "CVEs tested",
+                   "value": "${{ env.cves_tested }}"
+                 },
+                 {
+                   "title": "CVEs blocked",
+                   "value": "${{ env.cves_blocked }}"
+                 },
+                 {
+                   "title": "CVEs partially blocked",
+                   "value": "${{ env.cves_partially_blocked }}"
+                 },
+                 {
+                   "title": "CVEs not blocked",
+                   "value": "${{ env.cves_not_blocked }}"
+                 },
+                 {
+                   "title": "requests sent",
                    "value": "${{ env.total_requests }}"
                  },
                  {
-                   "title": "blocks",
-                   "value": "${{ env.total_blocked }}"
-                 },
-                 {
-                   "title": "partially blocked",
-                   "value": "${{ env.partially_blocked }}"
-                 },
-                 {
-                   "title": "non blocks",
-                   "value": "${{ env.total_not_blocked }}"
+                   "title": "upstream errors",
+                   "value": "${{ env.total_errored }}"
                  }
                ]
              }

@@ -31,6 +31,8 @@ func NewRootCommand() *cobra.Command {
 		Use:   "seaweed",
 		Short: "Parses Nuclei test files output",
 		RunE:  runE,
+		// A run that fails on its results is not a usage mistake.
+		SilenceUsage: true,
 	}
 	var formatMode FormatMode
 	output := new(string)

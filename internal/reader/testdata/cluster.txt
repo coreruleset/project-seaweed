@@ -1,0 +1,27 @@
+[cluster-2fcb0fe20707e44b561c050a5c3f396ebf958795017612af156f24a95745b27f] Dumped HTTP request for http://crs:8080/webui/file_guest?path=/var/www/documentation/../../../../../etc/passwd&flags=1152
+
+
+GET /webui/file_guest?path=/var/www/documentation/../../../../../etc/passwd&flags=1152 HTTP/1.1
+Host: crs:8080
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0 OS/10.0.22631
+Connection: close
+Accept: */*
+Accept-Language: en
+Accept-Encoding: gzip
+
+
+[cluster-2fcb0fe20707e44b561c050a5c3f396ebf958795017612af156f24a95745b27f] Dumped HTTP response http://crs:8080/webui/file_guest?path=/var/www/documentation/../../../../../etc/passwd&flags=1152
+
+HTTP/1.1 403 Forbidden
+Connection: close
+Content-Length: 199
+Content-Type: text/html; charset=iso-8859-1
+Date: Sun, 02 Jun 2024 22:02:42 GMT
+Server: Apache
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>403 Forbidden</title>
+</head><body>
+<h1>Forbidden</h1>
+<p>You don't have permission to access this resource.</p>

@@ -1,0 +1,29 @@
+[CVE-2009-1496] Dumped HTTP request for http://crs-waf:8080/index.php?option=com_cmimarketplace&Itemid=70&viewit=/../../../../../../etc/passwd&cid=1
+
+
+GET /index.php?option=com_cmimarketplace&Itemid=70&viewit=/../../../../../../etc/passwd&cid=1 HTTP/1.1
+Host: crs-waf:8080
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/9.1.2 Safari/605.1.15
+Connection: close
+Accept: */*
+Accept-Language: en
+Accept-Encoding: gzip
+
+
+[CVE-2009-1496] Dumped HTTP response http://crs-waf:8080/index.php?option=com_cmimarketplace&Itemid=70&viewit=/../../../../../../etc/passwd&cid=1
+
+HTTP/1.1 403 Forbidden
+Connection: close
+Content-Length: 199
+Content-Type: text/html; charset=iso-8859-1
+Date: Wed, 01 May 2024 03:10:01 GMT
+Server: Apache
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>403 Forbidden</title>
+</head><body>
+<h1>Forbidden</h1>
+<p>You don't have permission to access this resource.</p>
+</body></html>
+

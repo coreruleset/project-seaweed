@@ -1,0 +1,31 @@
+[CVE-2021-32682] Dumped HTTP request for http://crs:8080/admin/elfinder/elfinder-cke.html
+
+
+GET /admin/elfinder/elfinder-cke.html HTTP/1.1
+Host: crs:8080
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.1108.43 Safari/537.36 Edg/100.0.1108.43
+Connection: close
+Accept: */*
+Accept-Language: en
+Accept-Encoding: gzip
+
+
+[CVE-2021-32682] Dumped HTTP response http://crs:8080/admin/elfinder/elfinder-cke.html
+
+HTTP/1.1 503 Service Unavailable
+Connection: close
+Content-Length: 299
+Content-Type: text/html; charset=iso-8859-1
+Date: Sun, 02 Jun 2024 22:02:49 GMT
+Server: Apache
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>503 Service Unavailable</title>
+</head><body>
+<h1>Service Unavailable</h1>
+<p>The server is temporarily unable to service your
+request due to maintenance downtime or capacity
+problems. Please try again later.</p>
+</body></html>
+
