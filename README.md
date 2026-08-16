@@ -66,8 +66,12 @@ See [docs/adr](docs/adr) for why.
 After Nuclei has finished launching the attacks on the firewall, we store the requests and responses that were made. You
 can specify a directory if you want to see this raw data, otherwise it is stored inside a temporary directory.
 
-We then use this data to figure out if the CVE is blocked or not. If the attack is multi-staged we calculate how much of
-the attack was blocked (blocked requests / total requests). Based on this a report is generated.
+We then use this data to figure out if the CVE is blocked or not. Every CVE ends up in exactly one bucket: fully
+blocked, partially blocked when only some stages of a multi-stage attack were stopped, not blocked, or errored.
+
+Errored means the reverse proxy answered about itself — `408`, `500`, `502`, `503`, `504` — so the WAF never reached a
+verdict on the payload. Those are counted separately rather than as "the WAF let it through", and seaweed exits
+non-zero when more than 10% of a run errored, because such a run does not measure blocking.
 
 You can specify the report format to be either `github` (default) or `json`.
 
