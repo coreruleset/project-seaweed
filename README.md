@@ -78,7 +78,8 @@ Nuclei only starts once a request has been proven to round-trip through the WAF 
 fails the run instead of reporting every payload as unblocked.
 
 The mock backend answers every path with `mock/fingerprints.html`, a generated page carrying the strings that
-flow-gated Nuclei templates look for before they send their payload. It is generated from the pinned templates, and CI
+flow-gated Nuclei templates look for before they send their payload — both the `words` of their matchers and the
+literals inside `contains(body, ...)` style `dsl` gates, which want the same thing written differently. It is generated from the pinned templates, and CI
 fails if it drifts from them:
 
 ```

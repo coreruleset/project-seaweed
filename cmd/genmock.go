@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -29,8 +30,41 @@ type nucleiTemplate struct {
 			Part     string   `yaml:"part"`
 			Internal bool     `yaml:"internal"`
 			Words    []string `yaml:"words"`
+			DSL      []string `yaml:"dsl"`
 		} `yaml:"matchers"`
 	} `yaml:"http"`
+}
+
+var (
+	// A dsl gate that talks about the body wants the same thing a word matcher does,
+	// written differently: contains(body, "..."), contains(tolower(body), "..."),
+	// contains_all(body, "...", "..."). Two thirds of the gates the mock cannot satisfy
+	// are this shape.
+	dslBodyClause = regexp.MustCompile(`(?i)\bbody(?:_?\d+)?\b`)
+	dslLiteral    = regexp.MustCompile(`'([^']*)'|"([^"]*)"`)
+)
+
+// bodyLiterals returns the strings a dsl expression expects to find in the body. An
+// expression that also tests something else contributes its literals too: serving a
+// string the gate did not strictly need only risks letting a payload through to the WAF,
+// which is the point of the exercise.
+func bodyLiterals(expression string) []string {
+	if !dslBodyClause.MatchString(expression) {
+		return nil
+	}
+
+	var found []string
+	for _, match := range dslLiteral.FindAllStringSubmatch(expression, -1) {
+		literal := match[1]
+		if literal == "" {
+			literal = match[2]
+		}
+		if literal != "" {
+			found = append(found, literal)
+		}
+	}
+
+	return found
 }
 
 func newGenMockCommand() *cobra.Command {
@@ -101,11 +135,16 @@ func collectGateWords(root string) ([]string, error) {
 		}
 		for _, request := range template.HTTP {
 			for _, matcher := range request.Matchers {
-				if !matcher.Internal || matcher.Type != "word" {
+				if !matcher.Internal {
 					continue
 				}
 				for _, word := range matcher.Words {
 					unique[word] = struct{}{}
+				}
+				for _, expression := range matcher.DSL {
+					for _, literal := range bodyLiterals(expression) {
+						unique[literal] = struct{}{}
+					}
 				}
 			}
 		}
