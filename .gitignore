@@ -168,3 +168,6 @@ results/
 *.csv
 nuclei-templates/
 analysis.yaml
+
+# WAF logs collected by docker compose
+logs/

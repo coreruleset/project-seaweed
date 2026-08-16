@@ -1,7 +1,7 @@
 services:
   mock:
     # Answers 200 with the fingerprint page for every path. Regenerate the page with
-    # `go run . gen-mock` when the Nuclei templates change.
+    # `go run . gen-mock` after bumping the version in scripts/fetch-templates.sh.
     image: "nginx:1.31-alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752"
     volumes:
       - ./mock/nginx.conf:/etc/nginx/conf.d/default.conf:ro
@@ -19,13 +19,23 @@ services:
       MODSEC_RULE_ENGINE: "On"
       BLOCKING_PARANOIA: 4
       MODSEC_AUDIT_LOG_FORMAT: JSON
-      MODSEC_AUDIT_LOG_TYPE: concurrent
+      # A (transaction), B (request headers), H (the rule messages, which is the point),
+      # Z (terminator). The default also stores request and response bodies, and the
+      # mock's response body is the same page every time.
+      MODSEC_AUDIT_LOG_PARTS: ABHZ
+      # Serial writes one JSON object per transaction to a single file, which is far
+      # easier to collect and read back than concurrent's thousands of files.
+      MODSEC_AUDIT_LOG_TYPE: Serial
+      MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.json"
       MODSEC_TMP_DIR: "/tmp"
       # Apache only
       SERVERNAME: _default_
-      MODSEC_ERROR_LOG: "/dev/stderr"
-      MODSEC_AUDIT_LOG: "/var/log/apache2/modsec_audit.log"
+      # Every rule match goes to the error log. Left on stderr it drowns the run's
+      # console output; in a file it is a collectable artifact instead.
+      ERRORLOG: "/var/log/apache2/error.log"
     hostname: crs
+    volumes:
+      - ./logs:/var/log/apache2
     depends_on:
       mock:
         condition: service_healthy
@@ -42,12 +52,11 @@ services:
   nuclei:
     image: projectdiscovery/nuclei:latest@sha256:aa3a9c0894629405b5bbe644765dfffd6ff87b7663b5f1d64bcbc01341da335a
     hostname: nuclei
-    container_name: nuclei
     # -dc keeps nuclei from merging templates that send identical requests into one
     # trace file headed by a cluster hash, whose requests cannot be attributed to a CVE.
     command: >-
       -u http://crs:8080
-      -t http/cves
+      -t /templates/http/cves
       -tags ${SEAWEED_TAGS:-lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce}
       -type http
       -stats
@@ -55,8 +64,12 @@ services:
       -sresp
       -srd /output
       -dc
+      -duc
     volumes:
       - ./output:/output:rw
+      # Pinned by scripts/fetch-templates.sh, so week-to-week results are comparable
+      # and mock/fingerprints.html is generated from the same templates the scan runs.
+      - ./nuclei-templates:/templates:ro
     depends_on:
       crs:
         condition: service_healthy

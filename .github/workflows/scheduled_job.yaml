@@ -32,13 +32,17 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Fetch the pinned templates
+        # The version in .env is what makes one week's numbers comparable to the next.
+        run: ./scripts/fetch-templates.sh
+
       - name: Run the scan
         # docker-compose.yml is the only definition of the test environment. It holds
         # nuclei behind a WAF healthcheck that proves a request round-trips to the
         # backend, so a broken backend fails this job instead of silently scoring every
         # payload as "not blocked".
         run: |
-          mkdir -p output
+          mkdir -p output logs
           docker compose up --exit-code-from nuclei
 
       - name: zip output
@@ -46,16 +50,16 @@ jobs:
         # cannot read it and `zip -qq` skips it without a word, leaving an empty
         # archive. Fail here if the scan produced nothing, rather than at the report.
         run: |
-          sudo chmod -R a+rX output
+          sudo chmod -R a+rX output logs
           test -n "$(find output -name '*.txt' -print -quit)" || {
             echo "::error::the scan produced no trace files"
             exit 1
           }
-          zip -qq -r output.zip output
+          zip -qq -r output.zip output logs
 
       - name: GitHub Workflow artifacts
-        # Uploaded before the report runs, so the traces survive a failed report —
-        # which is exactly when they are worth having.
+        # Uploaded before the report runs, so the traces and the WAF's own logs survive
+        # a failed report — which is exactly when they are worth having.
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: output

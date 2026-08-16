@@ -75,12 +75,16 @@ Nuclei only starts once a request has been proven to round-trip through the WAF 
 fails the run instead of reporting every payload as unblocked.
 
 The mock backend answers every path with `mock/fingerprints.html`, a generated page carrying the strings that
-flow-gated Nuclei templates look for before they send their payload. Regenerate it when the templates change:
+flow-gated Nuclei templates look for before they send their payload. It is generated from the pinned templates, and CI
+fails if it drifts from them:
 
 ```
-git clone --depth 1 https://github.com/projectdiscovery/nuclei-templates.git
+./scripts/fetch-templates.sh
 go run . gen-mock
 ```
+
+The pinned version lives in `scripts/fetch-templates.sh`. Pinning it is what makes one week's numbers comparable to
+the next, and what keeps the scan and the fingerprint page in step.
 
 See [docs/adr](docs/adr) for why.
 
@@ -154,13 +158,23 @@ You need go installed on your system to build the project.
 
 `go build`
 
-4. **Run the scan**
+4. **Fetch the pinned templates**
+
+```
+./scripts/fetch-templates.sh
+```
+
+This downloads the pinned version into `nuclei-templates/`, which both the scan and `gen-mock` read. The
+directory is managed by the script and replaced wholesale.
+
+5. **Run the scan**
 
 ```
 docker compose up
 ```
 
-This starts the containers and runs the tests. Trace files land in `output/`.
+This starts the containers and runs the tests. Trace files land in `output/`, and the WAF's own error and JSON audit
+logs — the latter carrying the CRS rule ids behind each block — land in `logs/`.
 
 Now run the reporting tool:
 
@@ -170,14 +184,15 @@ On Linux, Nuclei writes `output/http` as root with mode 0700, so your user canno
 empty. Fix the permissions once after each scan:
 
 ```
-sudo chmod -R a+rX output
+sudo chmod -R a+rX output logs
 ```
 
 ## Development
 
 ```
-go test ./...        # unit tests
-go run . gen-mock    # regenerate the mock backend page
+go test ./...                 # unit tests
+./scripts/fetch-templates.sh  # download the pinned Nuclei templates
+go run . gen-mock             # regenerate the mock backend page
 ```
 
 Architecture decisions, and the measurements behind them, are recorded in [docs/adr](docs/adr).
