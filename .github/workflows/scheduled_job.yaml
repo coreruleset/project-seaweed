@@ -6,15 +6,31 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+
 jobs:
-  project-runner:
-    name: Project runner
+  scan:
+    name: Scan and report
     runs-on: ubuntu-latest
+    # The scan itself takes about a minute. This is a backstop against a hung
+    # container burning six hours of runner time.
+    timeout-minutes: 30
+    outputs:
+      total_requests: ${{ steps.report.outputs.total_requests }}
+      total_errored: ${{ steps.report.outputs.total_errored }}
+      cves_tested: ${{ steps.report.outputs.cves_tested }}
+      cves_blocked: ${{ steps.report.outputs.cves_blocked }}
+      cves_partially_blocked: ${{ steps.report.outputs.cves_partially_blocked }}
+      cves_not_blocked: ${{ steps.report.outputs.cves_not_blocked }}
     steps:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: 'go.mod'
 
       - name: Run the scan
         # docker-compose.yml is the only definition of the test environment. It holds
@@ -28,7 +44,7 @@ jobs:
       - name: zip output
         # Nuclei creates its trace directory as root with mode 0700, so the runner
         # cannot read it and `zip -qq` skips it without a word, leaving an empty
-        # archive. Fail here if the scan produced nothing, rather than three jobs later.
+        # archive. Fail here if the scan produced nothing, rather than at the report.
         run: |
           sudo chmod -R a+rX output
           test -n "$(find output -name '*.txt' -print -quit)" || {
@@ -38,102 +54,96 @@ jobs:
           zip -qq -r output.zip output
 
       - name: GitHub Workflow artifacts
+        # Uploaded before the report runs, so the traces survive a failed report —
+        # which is exactly when they are worth having.
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: output
           path: output.zip
 
-  process-artifacts:
-      name: Generate report
-      runs-on: ubuntu-latest
-      needs: [project-runner]
-      outputs:
-        total_requests: ${{ steps.report.outputs.total_requests }}
-        total_errored: ${{ steps.report.outputs.total_errored }}
-        cves_tested: ${{ steps.report.outputs.cves_tested }}
-        cves_blocked: ${{ steps.report.outputs.cves_blocked }}
-        cves_partially_blocked: ${{ steps.report.outputs.cves_partially_blocked }}
-        cves_not_blocked: ${{ steps.report.outputs.cves_not_blocked }}
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-          with:
-            persist-credentials: false
-
-        - name: Setup Go
-          uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
-          with:
-            go-version-file: 'go.mod'
-
-        - name: Download artifacts
-          uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-          with:
-            name: output
-
-        - name: Build report
-          id: report
-          # Exits non-zero when too many requests got an upstream error instead of a
-          # verdict, which skips the notification rather than reporting a broken run.
-          run: |
-            go build
-            unzip -qq output.zip
-            ./project-seaweed -o output >> "$GITHUB_OUTPUT"
-
+      - name: Build report
+        id: report
+        # Exits non-zero when too many requests got an upstream error instead of a
+        # verdict, which turns the summary notification into a failure alert.
+        run: |
+          go build
+          ./project-seaweed -o output >> "$GITHUB_OUTPUT"
 
   slack-notification:
-   name: Send notification
-   runs-on: ubuntu-latest
-   needs: process-artifacts
-   env:
-     total_requests: ${{ needs.process-artifacts.outputs.total_requests }}
-     total_errored: ${{ needs.process-artifacts.outputs.total_errored }}
-     cves_tested: ${{ needs.process-artifacts.outputs.cves_tested }}
-     cves_blocked: ${{ needs.process-artifacts.outputs.cves_blocked }}
-     cves_partially_blocked: ${{ needs.process-artifacts.outputs.cves_partially_blocked }}
-     cves_not_blocked: ${{ needs.process-artifacts.outputs.cves_not_blocked }}
-   steps:
-     - name: Success
-       uses: slackapi/slack-github-action@0d95c9a7becc1e6e297d76df9bc735c44f4cbcbc # v3.0.5
-       with:
-         webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-         webhook-type: incoming-webhook
-         payload: |
-           {
-           "text": "Testing finished!",
-           "attachments": [
-             {
-               "color": "28a745",
-               "fields": [
-                 {
-                   "title": "Status",
-                   "value": "Complete"
-                 },
-                 {
-                   "title": "CVEs tested",
-                   "value": "${{ env.cves_tested }}"
-                 },
-                 {
-                   "title": "CVEs blocked",
-                   "value": "${{ env.cves_blocked }}"
-                 },
-                 {
-                   "title": "CVEs partially blocked",
-                   "value": "${{ env.cves_partially_blocked }}"
-                 },
-                 {
-                   "title": "CVEs not blocked",
-                   "value": "${{ env.cves_not_blocked }}"
-                 },
-                 {
-                   "title": "requests sent",
-                   "value": "${{ env.total_requests }}"
-                 },
-                 {
-                   "title": "upstream errors",
-                   "value": "${{ env.total_errored }}"
-                 }
-               ]
-             }
-             ]
-           }
+    name: Send notification
+    runs-on: ubuntu-latest
+    needs: scan
+    if: always()
+    env:
+      total_requests: ${{ needs.scan.outputs.total_requests }}
+      total_errored: ${{ needs.scan.outputs.total_errored }}
+      cves_tested: ${{ needs.scan.outputs.cves_tested }}
+      cves_blocked: ${{ needs.scan.outputs.cves_blocked }}
+      cves_partially_blocked: ${{ needs.scan.outputs.cves_partially_blocked }}
+      cves_not_blocked: ${{ needs.scan.outputs.cves_not_blocked }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Success
+        if: needs.scan.result == 'success'
+        uses: slackapi/slack-github-action@0d95c9a7becc1e6e297d76df9bc735c44f4cbcbc # v3.0.5
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+            "text": "Testing finished!",
+            "attachments": [
+              {
+                "color": "28a745",
+                "fields": [
+                  {
+                    "title": "Status",
+                    "value": "Complete"
+                  },
+                  {
+                    "title": "CVEs tested",
+                    "value": "${{ env.cves_tested }}"
+                  },
+                  {
+                    "title": "CVEs blocked",
+                    "value": "${{ env.cves_blocked }}"
+                  },
+                  {
+                    "title": "CVEs partially blocked",
+                    "value": "${{ env.cves_partially_blocked }}"
+                  },
+                  {
+                    "title": "CVEs not blocked",
+                    "value": "${{ env.cves_not_blocked }}"
+                  },
+                  {
+                    "title": "requests sent",
+                    "value": "${{ env.total_requests }}"
+                  },
+                  {
+                    "title": "upstream errors",
+                    "value": "${{ env.total_errored }}"
+                  }
+                ]
+              }
+              ]
+            }
 
+      # A cancelled run stays silent; someone stopped it on purpose.
+      - name: Failure
+        if: needs.scan.result == 'failure'
+        uses: slackapi/slack-github-action@0d95c9a7becc1e6e297d76df9bc735c44f4cbcbc # v3.0.5
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+            "text": "WAF testing failed",
+            "attachments": [
+              {
+                "color": "d73a49",
+                "mrkdwn_in": ["text"],
+                "text": "The scan or the report failed, so there are no results this week. <${{ env.run_url }}|View the run>"
+              }
+              ]
+            }

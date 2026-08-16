@@ -28,6 +28,7 @@ flowchart TD
     G -->|yes| X
     G -->|no| H[Per-CVE report]
     H --> I[Slack summary]
+    X --> J[Slack failure alert]
 ```
 
 ## Features
@@ -125,8 +126,11 @@ tags listed in `docker-compose.yml` — xss, rce, sqli and the other common web 
 5. **Slack integration**
 
 After the testing is finished, a message is sent to the defined channel on slack with a small summary: CVEs tested,
-CVEs blocked, CVEs partially blocked, CVEs not blocked, requests sent, and upstream errors. A run that fails its error
-gate sends nothing, rather than a summary of a scan that measured nothing.
+CVEs blocked, CVEs partially blocked, CVEs not blocked, requests sent, and upstream errors.
+
+A run that fails — because the environment never came up, because the scan produced nothing, or because too much of it
+errored — sends an alert linking to the logs instead of a summary of a scan that measured nothing. A cancelled run
+stays silent.
 
 6. **Report comparison**
 
