@@ -50,6 +50,7 @@ Available Commands:
   diff        Compare two JSON reports and show what moved
   gen-mock    Generate the mock backend page from Nuclei flow-gated templates
   help        Help about any command
+  sweep       Report every paranoia level under a directory
 
 Flags:
   -f, --format format      format to output the results; can be 'github' (default), 'json' or 'slack' (default github)
@@ -168,35 +169,40 @@ The recommended usage of this tool is in a CI/CD environment like GitHub Actions
 tags listed in `docker-compose.yml` — xss, rce, sqli and the other common web CVE categories.
 
 It scans at every paranoia level, because one level is one point on a curve and PL1 is what most CRS installs actually
-run. The result goes to the job summary:
+run. `seaweed sweep output` reads each level's directory and reports them together:
 
-| paranoia | blocked | partially | not blocked | block rate |
-| --- | --- | --- | --- | --- |
-| PL1 | 1319 | 356 | 851 | 52.2% |
-| PL2 | 1460 | 364 | 707 | 57.7% |
-| PL3 | 1494 | 369 | 667 | 59.1% |
-| PL4 | 1606 | 362 | 562 | 63.5% |
+```
+❯ ./project-seaweed sweep output
+PL1   52%  ██████████░░░░░░░░░░   1319 blocked    851 not blocked
+PL2   58%  ████████████░░░░░░░░   1460 blocked    707 not blocked
+PL3   59%  ████████████░░░░░░░░   1500 blocked    661 not blocked
+PL4   64%  █████████████░░░░░░░   1614 blocked    555 not blocked
+```
 
-Paranoia 4 stays the headline number in Slack and in the run-to-run diff, for continuity. Set `SEAWEED_PARANOIA` to
-scan a single level locally, and `SEAWEED_OUTPUT` to send its traces somewhere of their own.
+That table goes to both the job summary and the Slack message. Paranoia 4 stays the headline number and drives the
+run-to-run diff, for continuity. Set `SEAWEED_PARANOIA` to scan a single level locally, and `SEAWEED_OUTPUT` to send
+its traces somewhere of their own.
 
 **The curve only shows one side.** More blocking at a higher paranoia level costs false positives, and seaweed does not
 measure those yet, so the rate rising is not on its own a reason to raise the level.
 
 5. **Slack integration**
 
-After the testing is finished, a message is sent to the defined channel on slack. It leads with the block rate — the
-share of CVEs the WAF blocked outright, out of those it reached any verdict on — as a headline and a bar, then the
-per-bucket counts:
+After the testing is finished, a message is sent to the defined channel on slack. It leads with the block rate at the
+highest paranoia level — the share of CVEs the WAF blocked outright, out of those it reached any verdict on — and then
+the whole curve:
 
 ```
-WAF test: 66% of CVEs blocked
-`█████████████░░░░░░░`  66%
+WAF test: 64% of CVEs blocked at PL4
 
-Blocked  1588         Partially blocked  295
-Not blocked  533      Not exercised  194
+PL1   52%  ██████████░░░░░░░░░░   1319 blocked    851 not blocked
+PL2   58%  ████████████░░░░░░░░   1460 blocked    707 not blocked
+PL3   59%  ████████████░░░░░░░░   1500 blocked    661 not blocked
+PL4   64%  █████████████░░░░░░░   1614 blocked    555 not blocked
 
-2710 CVEs seen · 3775 requests · 136 rejected by the server · 2 upstream errors · 100 with no verdict · view the run
+Partially blocked  360      Not exercised  80
+
+2710 CVEs seen · 3863 requests at PL4 · 135 rejected by the server · 2 upstream errors · view the run
 ```
 
 The layout is built by `seaweed -f slack`, so it is covered by tests rather than assembled from workflow expressions.
