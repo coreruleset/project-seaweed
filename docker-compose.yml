@@ -17,7 +17,9 @@ services:
       PORT: 8080
       BACKEND: "http://mock:8080"
       MODSEC_RULE_ENGINE: "On"
-      BLOCKING_PARANOIA: 4
+      # The whole point of a sweep: CRS gets more aggressive with each level, and the
+      # cost of that is what the numbers are for.
+      BLOCKING_PARANOIA: ${SEAWEED_PARANOIA:-4}
       MODSEC_AUDIT_LOG_FORMAT: JSON
       # A (transaction), B (request headers), H (the rule messages, which is the point),
       # Z (terminator). The default also stores request and response bodies, and the
@@ -67,7 +69,7 @@ services:
       -dc
       -duc
     volumes:
-      - ./output:/output:rw
+      - ${SEAWEED_OUTPUT:-./output}:/output:rw
       # Pinned by scripts/fetch-templates.sh, so week-to-week results are comparable
       # and mock/fingerprints.html is generated from the same templates the scan runs.
       - ./nuclei-templates:/templates:ro

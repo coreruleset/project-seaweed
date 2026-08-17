@@ -161,6 +161,22 @@ The `slack` format writes a Block Kit message on a single line, which the workfl
 The recommended usage of this tool is in a CI/CD environment like GitHub Actions. The workflow runs weekly against the
 tags listed in `docker-compose.yml` — xss, rce, sqli and the other common web CVE categories.
 
+It scans at every paranoia level, because one level is one point on a curve and PL1 is what most CRS installs actually
+run. The result goes to the job summary:
+
+| paranoia | blocked | partially | not blocked | block rate |
+| --- | --- | --- | --- | --- |
+| PL1 | 1319 | 356 | 851 | 52.2% |
+| PL2 | 1460 | 364 | 707 | 57.7% |
+| PL3 | 1494 | 369 | 667 | 59.1% |
+| PL4 | 1606 | 362 | 562 | 63.5% |
+
+Paranoia 4 stays the headline number in Slack and in the run-to-run diff, for continuity. Set `SEAWEED_PARANOIA` to
+scan a single level locally, and `SEAWEED_OUTPUT` to send its traces somewhere of their own.
+
+**The curve only shows one side.** More blocking at a higher paranoia level costs false positives, and seaweed does not
+measure those yet, so the rate rising is not on its own a reason to raise the level.
+
 5. **Slack integration**
 
 After the testing is finished, a message is sent to the defined channel on slack. It leads with the block rate — the
