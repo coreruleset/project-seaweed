@@ -39,6 +39,10 @@ services:
       # with `docker compose cp crs:/var/log/apache2/. logs/`.
       ERRORLOG: "/var/log/apache2/error.log"
     hostname: crs
+    # Published so host-side tools can reach the WAF: `seaweed false-positives` replays
+    # the CRS regression suite from outside the compose network.
+    ports:
+      - "${SEAWEED_PORT:-8080}:8080"
     depends_on:
       mock:
         condition: service_healthy

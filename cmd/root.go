@@ -58,6 +58,7 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(newGenMockCommand())
 	rootCmd.AddCommand(newDiffCommand())
 	rootCmd.AddCommand(newSweepCommand())
+	rootCmd.AddCommand(newFalsePositivesCommand())
 
 	return rootCmd
 }
