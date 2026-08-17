@@ -50,6 +50,7 @@ func NewRootCommand() *cobra.Command {
 		"path to the Nuclei templates, used to tell a gated template from one that simply finished")
 
 	rootCmd.AddCommand(newGenMockCommand())
+	rootCmd.AddCommand(newDiffCommand())
 
 	return rootCmd
 }

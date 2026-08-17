@@ -47,6 +47,7 @@ Usage:
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
+  diff        Compare two JSON reports and show what moved
   gen-mock    Generate the mock backend page from Nuclei flow-gated templates
   help        Help about any command
 
@@ -201,7 +202,13 @@ stays silent.
 
 6. **Report comparison**
 
-TBD
+`seaweed diff previous.json current.json` compares two JSON reports and leads with the CVEs the WAF used to block and
+no longer does. The scheduled run does this automatically against the previous successful run and writes the result to
+the job summary.
+
+Read the totals before the names. Nuclei randomises the User-Agent per request and some templates randomise their
+payload, and neither can be turned off, so **about 48 CVEs change bucket between two identical runs**. A handful of
+individual CVEs moving is noise; a bucket total moving is not.
 
 ## Usage
 

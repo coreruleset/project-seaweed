@@ -11,6 +11,10 @@ jobs:
   scan:
     name: Scan and report
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Reading the previous run's report artifact, to compare against.
+      actions: read
     # The scan itself takes about a minute. This is a backstop against a hung
     # container burning six hours of runner time.
     timeout-minutes: 30
@@ -78,8 +82,38 @@ jobs:
         run: |
           go build
           ./project-seaweed -o output >> "$GITHUB_OUTPUT"
+          ./project-seaweed -o output -f json > report.json
           # One line of Block Kit, so it travels as a job output.
           echo "slack_payload=$(./project-seaweed -o output -f slack --run-url "$RUN_URL")" >> "$GITHUB_OUTPUT"
+
+      - name: Compare with the previous run
+        # Informational: a diff that cannot be produced is not a reason to fail a scan
+        # that already succeeded.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=$(gh run list --workflow scheduled_job.yaml --status success \
+            --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -z "$previous" ]; then
+            echo "no previous successful run to compare against" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh run download "$previous" --name report --dir previous
+          {
+            echo "## Compared with [run $previous]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$previous)"
+            echo '```'
+            ./project-seaweed diff previous/report.json report.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report artifact
+        # Uploaded after the comparison, so the download above always finds the previous
+        # run's report rather than this one's.
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: report
+          path: report.json
 
   slack-notification:
     name: Send notification
