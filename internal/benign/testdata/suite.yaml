@@ -1,0 +1,44 @@
+---
+tests:
+  - test_title: "941100-1"
+    stages:
+      - input:
+          dest_addr: 127.0.0.1
+          port: 80
+          method: GET
+          uri: "/get?foo=bar"
+          headers:
+            Host: localhost
+            User-Agent: test
+            Accept: "*/*"
+        output:
+          log:
+            no_expect_ids: [941100, 941110]
+  - test_title: "941100-2 expects a block, so it is not our corpus"
+    stages:
+      - input:
+          method: GET
+          uri: "/get?foo=<script>alert(1)</script>"
+          headers:
+            Host: localhost
+        output:
+          log:
+            expect_ids: [941100]
+  - test_title: "941100-3 has a body"
+    stages:
+      - input:
+          method: POST
+          uri: "/post"
+          headers:
+            Host: localhost
+          data: "foo=bar"
+        output:
+          log:
+            no_expect_ids: [941100]
+  - test_title: "941100-4 cannot be replayed"
+    stages:
+      - input:
+          encoded_request: "R0VUIC8gSFRUUC8xLjEK"
+        output:
+          log:
+            no_expect_ids: [941100]

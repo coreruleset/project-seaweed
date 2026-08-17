@@ -46,11 +46,12 @@ Usage:
   seaweed [command]
 
 Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  diff        Compare two JSON reports and show what moved
-  gen-mock    Generate the mock backend page from Nuclei flow-gated templates
-  help        Help about any command
-  sweep       Report every paranoia level under a directory
+  completion      Generate the autocompletion script for the specified shell
+  diff            Compare two JSON reports and show what moved
+  false-positives Replay the CRS regression suite and count the rules that fire when they should not
+  gen-mock        Generate the mock backend page from Nuclei flow-gated templates
+  help            Help about any command
+  sweep           Report every paranoia level under a directory
 
 Flags:
   -f, --format format      format to output the results; can be 'github' (default), 'json' or 'slack' (default github)
@@ -183,8 +184,24 @@ That table goes to both the job summary and the Slack message. Paranoia 4 stays 
 run-to-run diff, for continuity. Set `SEAWEED_PARANOIA` to scan a single level locally, and `SEAWEED_OUTPUT` to send
 its traces somewhere of their own.
 
-**The curve only shows one side.** More blocking at a higher paranoia level costs false positives, and seaweed does not
-measure those yet, so the rate rising is not on its own a reason to raise the level.
+**The curve only shows one side.** More blocking at a higher paranoia level costs false positives. `seaweed
+false-positives` measures those against CRS's own regression suite:
+
+```
+./scripts/fetch-crs-tests.sh
+./project-seaweed false-positives 127.0.0.1:8080 --audit-log logs/pl4/modsec_audit.json
+```
+
+It replays every stage of the suite that asserts a rule must *not* fire, then checks the audit log for whether one did.
+Each request carries an `X-Seaweed-Case` header so the join to the log is exact.
+
+Blocking is reported separately and is deliberately **not** the measurement: many of those stages carry real attack
+payloads and assert only that a neighbouring rule stays quiet, so CRS is right to block them.
+
+**The absolute rate is not yet trustworthy** — this stack is not the harness CRS runs its suite on, and until the tool
+is calibrated against go-ftw on the same stack, the failure count reflects that difference as much as any defect. It is
+not part of the weekly notification for that reason. See
+[ADR 13](docs/adr/0013-measure-false-positives-against-the-crs-suite.md).
 
 5. **Slack integration**
 

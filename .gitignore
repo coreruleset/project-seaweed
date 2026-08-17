@@ -171,3 +171,6 @@ analysis.yaml
 
 # WAF logs collected by docker compose
 logs/
+
+# CRS regression suite fetched by scripts/fetch-crs-tests.sh
+crs-tests/
