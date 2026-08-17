@@ -54,7 +54,7 @@ Available Commands:
 Flags:
   -f, --format format      format to output the results; can be 'github' (default), 'json' or 'slack' (default github)
   -h, --help               help for seaweed
-  -o, --output string      path to find output trace files (default ".")
+  -o, --output string      path to one run's output trace files; several runs under one path get merged together (default ".")
       --run-url string     link to include in the slack message, usually the CI run
       --templates string   path to the Nuclei templates, used to tell a gated template from one that simply finished (default "nuclei-templates/http/cves")
 
@@ -98,6 +98,11 @@ See [docs/adr](docs/adr) for why.
 
 Nuclei writes one trace file per CVE into `output/`, holding every request it sent and every response it got.
 `seaweed -o output` reads them.
+
+`-o` wants **one run's** output directory. It walks the tree and merges files by CVE, which is right for one run across
+several targets or protocols, and wrong across runs: pointing it at a parent holding several scans blends them into a
+number that describes no configuration at all. The paranoia sweep keeps each level in `output/pl1` … `output/pl4` for
+this reason.
 
 Every CVE ends up in exactly one bucket:
 

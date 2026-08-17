@@ -40,7 +40,8 @@ func NewRootCommand() *cobra.Command {
 	}
 	var formatMode FormatMode
 	output := new(string)
-	rootCmd.PersistentFlags().StringVarP(output, "output", "o", ".", "path to find output trace files")
+	rootCmd.PersistentFlags().StringVarP(output, "output", "o", ".",
+		"path to one run's output trace files; several runs under one path get merged together")
 	rootCmd.PersistentFlags().VarP(enumflag.New(&formatMode, "format", FormatModeIds, enumflag.EnumCaseInsensitive),
 		"format", "f",
 		"format to output the results; can be 'github' (default), 'json' or 'slack'")
