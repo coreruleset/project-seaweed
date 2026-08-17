@@ -2,35 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/coreruleset/project-seaweed/internal/reader"
+	"github.com/coreruleset/project-seaweed/internal/templates"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
-
-// nucleiTemplate is the subset of a Nuclei template needed to find flow gates.
-//
-// Templates that declare `flow` only send their payload steps when an earlier step's
-// `internal: true` matcher hits, so those matcher words are the fingerprints the mock
-// backend has to serve. See docs/adr/0001-generate-mock-backend-fingerprints.md.
-type nucleiTemplate struct {
-	Flow string `yaml:"flow"`
-	HTTP []struct {
-		Matchers []struct {
-			Type     string   `yaml:"type"`
-			Part     string   `yaml:"part"`
-			Internal bool     `yaml:"internal"`
-			Words    []string `yaml:"words"`
-			DSL      []string `yaml:"dsl"`
-		} `yaml:"matchers"`
-	} `yaml:"http"`
-}
 
 var (
 	// A dsl gate that talks about the body wants the same thing a word matcher does,
@@ -110,25 +90,9 @@ func runGenMock(cmd *cobra.Command, _ []string) error {
 func collectGateWords(root string) ([]string, error) {
 	unique := map[string]struct{}{}
 
-	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() || filepath.Ext(path) != ".yaml" {
-			return nil
-		}
-		contents, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("reading %s: %w", path, err)
-		}
-		var template nucleiTemplate
-		if err := yaml.Unmarshal(contents, &template); err != nil {
-			// Templates are third party; a single unparseable one must not fail the run.
-			fmt.Fprintf(os.Stderr, "skipping %s: %v\n", path, err)
-			return nil
-		}
+	err := templates.Each(root, func(template templates.Template) {
 		if template.Flow == "" {
-			return nil
+			return
 		}
 		for _, request := range template.HTTP {
 			for _, matcher := range request.Matchers {
@@ -145,7 +109,6 @@ func collectGateWords(root string) ([]string, error) {
 				}
 			}
 		}
-		return nil
 	})
 	if err != nil {
 		return nil, err

@@ -42,13 +42,13 @@ const (
 )
 
 // ReportNucleiBlocks reports how the WAF answered the payloads in the Nuclei output.
-func ReportNucleiBlocks(path string, format string, runURL string) error {
+func ReportNucleiBlocks(path string, format string, runURL string, gated map[string]bool) error {
 	results, err := reader.ParseNucleiOutputDirectory(path)
 	if err != nil {
 		return err
 	}
 
-	report := BuildReport(results)
+	report := BuildReport(results, gated)
 	if err := printReport(report, format, runURL); err != nil {
 		return err
 	}
@@ -58,7 +58,11 @@ func ReportNucleiBlocks(path string, format string, runURL string) error {
 }
 
 // BuildReport aggregates per-CVE trace results into a single report.
-func BuildReport(results []reader.NucleiTraceOutput) GlobalReport {
+//
+// gated names the CVEs whose template holds its payload behind a flow gate; pass nil when
+// the templates are not available. A template without a gate sends everything it has, so
+// a trace holding only a bare `GET /` means that was the whole attack.
+func BuildReport(results []reader.NucleiTraceOutput, gated map[string]bool) GlobalReport {
 	var report GlobalReport
 
 	for _, result := range results {
@@ -70,7 +74,7 @@ func BuildReport(results []reader.NucleiTraceOutput) GlobalReport {
 
 		verdicts := result.BlockedRequests + result.NotBlockedRequests
 		switch {
-		case !result.Exercised:
+		case !exercised(result, gated):
 			// The payload step never ran, so this CVE was not tested at all. Counting it
 			// as "not blocked" blames the WAF for an attack nobody sent.
 			report.CVEsNotExercised = append(report.CVEsNotExercised, result.CVENumber)
@@ -88,6 +92,17 @@ func BuildReport(results []reader.NucleiTraceOutput) GlobalReport {
 	}
 
 	return report
+}
+
+// exercised reports whether the template got to send what it meant to send.
+func exercised(result reader.NucleiTraceOutput, gated map[string]bool) bool {
+	if result.Exercised {
+		return true
+	}
+
+	// Only a gated template can stop early. Without the templates to check against, keep
+	// the pessimistic reading rather than quietly reclassifying.
+	return gated != nil && !gated[result.CVENumber]
 }
 
 // Validate reports whether the run measured the WAF at all.

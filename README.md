@@ -51,10 +51,11 @@ Available Commands:
   help        Help about any command
 
 Flags:
-  -f, --format format    format to output the results; can be 'github' (default), 'json' or 'slack' (default github)
-  -h, --help             help for seaweed
-  -o, --output string    path to find output trace files (default ".")
-      --run-url string   link to include in the slack message, usually the CI run
+  -f, --format format      format to output the results; can be 'github' (default), 'json' or 'slack' (default github)
+  -h, --help               help for seaweed
+  -o, --output string      path to find output trace files (default ".")
+      --run-url string     link to include in the slack message, usually the CI run
+      --templates string   path to the Nuclei templates, used to tell a gated template from one that simply finished (default "nuclei-templates/http/cves")
 
 Use "seaweed [command] --help" for more information about a command.
 ```
@@ -104,7 +105,7 @@ Every CVE ends up in exactly one bucket:
 | blocked | every request the WAF judged, it blocked |
 | partially blocked | only some stages of a multi-stage attack were stopped |
 | not blocked | the payload reached the backend |
-| not exercised | the template never sent anything but a bare `GET /`, so its payload step never ran and the WAF was never asked |
+| not exercised | a flow-gated template never sent anything but a bare `GET /`, so its payload step never ran and the WAF was never asked |
 | no verdict | none of its requests reached the backend or got an answer from it |
 
 Only three of those describe the WAF. A request can also be:
@@ -121,6 +122,10 @@ refusing an encoded slash are the same status code and opposite meanings; only t
 redirect always counts as delivered, marker or not.
 
 Neither is a verdict, so neither counts for or against the WAF, and neither is in the block rate.
+
+Only a **flow-gated** template can be "not exercised". One without a gate sends everything it has, so a trace holding
+only a bare `GET /` means that was the whole attack. `seaweed` reads `nuclei-templates/` to tell the two apart; point
+`--templates` elsewhere, or run without them and every unsent CVE keeps the pessimistic reading.
 
 The `github` format writes `key=value` pairs meant for `$GITHUB_OUTPUT`:
 
