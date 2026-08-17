@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -39,17 +40,12 @@ var upstreamErrorStatuses = map[int]bool{
 	http.StatusGatewayTimeout:      true,
 }
 
-// rejectedStatuses are refusals by the server in front of the backend, before the
-// payload could land. The bundled mock answers 200 on every path and every method, so
-// under `docker compose up` anything here came from Apache, not from the application:
-// 400 for a malformed request, and 404 for an encoded slash, which Apache rejects during
-// URI translation before ModSecurity's phase 2 blocking rule can act. A run against some
-// other backend, where 404 is an ordinary application answer, will over-count this.
-var rejectedStatuses = map[int]bool{
-	http.StatusBadRequest:       true,
-	http.StatusNotFound:         true,
-	http.StatusMethodNotAllowed: true,
-}
+// BackendMarker is served in the body of every response the mock backend produces, on
+// every path and every method. Its presence is proof the request reached the application;
+// its absence means something in front answered instead. That is a stronger test than
+// reading status codes: an application's own 404 and Apache refusing an encoded slash
+// look identical by status and are opposites by meaning.
+const BackendMarker = "seaweed-mock-ok"
 
 // ParseNucleiOutputDirectory reads every trace file under path and returns one result
 // per CVE, sorted by CVE number.
@@ -103,15 +99,14 @@ func ParseNucleiOutputDirectory(path string) ([]NucleiTraceOutput, error) {
 }
 
 func parseNucleiTraceOutput(filename string) (NucleiTraceOutput, error) {
-	var trace NucleiTraceOutput
-
 	file, err := os.Open(filename)
 	if err != nil {
-		return trace, err
+		return NucleiTraceOutput{}, err
 	}
 	// Read-only: nothing to lose on a failed close.
 	defer func() { _ = file.Close() }()
 
+	scanner := &traceScanner{}
 	reader := bufio.NewReader(file)
 	for {
 		// ReadString has no line length limit. Response bodies in these traces run to
@@ -119,55 +114,89 @@ func parseNucleiTraceOutput(filename string) (NucleiTraceOutput, error) {
 		// and reports only through an Err() that is easy to miss.
 		line, readErr := reader.ReadString('\n')
 		if line != "" {
-			countLine(&trace, line)
+			scanner.line(line)
 		}
 		if readErr != nil {
 			if errors.Is(readErr, io.EOF) {
 				break
 			}
-			return trace, fmt.Errorf("reading %s: %w", filename, readErr)
+			return NucleiTraceOutput{}, fmt.Errorf("reading %s: %w", filename, readErr)
 		}
 	}
+	scanner.settle()
 
-	return trace, nil
+	return scanner.trace, nil
 }
 
-func countLine(trace *NucleiTraceOutput, line string) {
-	if found := tracePattern.FindStringSubmatch(line); found != nil {
-		if trace.CVENumber == "" {
-			trace.CVENumber = found[1]
+// traceScanner walks a trace file, pairing each dumped response with the body that
+// follows it so that delivery can be decided per request.
+type traceScanner struct {
+	trace     NucleiTraceOutput
+	awaiting  bool
+	status    int
+	delivered bool
+}
+
+func (s *traceScanner) line(text string) {
+	if found := tracePattern.FindStringSubmatch(text); found != nil {
+		s.settle()
+		if s.trace.CVENumber == "" {
+			s.trace.CVENumber = found[1]
 		}
+
 		return
 	}
 
 	// A template whose every request is a bare "GET /" never sent a payload: its
 	// detection step did not match, so the WAF was never asked about this CVE.
-	if request := requestPattern.FindStringSubmatch(line); request != nil {
+	if request := requestPattern.FindStringSubmatch(text); request != nil {
+		s.settle()
 		if request[1] != "/" {
-			trace.Exercised = true
+			s.trace.Exercised = true
 		}
 
 		return
 	}
 
-	found := responsePattern.FindStringSubmatch(line)
-	if found == nil {
-		return
-	}
-	status, err := strconv.Atoi(found[1])
-	if err != nil {
+	if found := responsePattern.FindStringSubmatch(text); found != nil {
+		s.settle()
+		status, err := strconv.Atoi(found[1])
+		if err != nil {
+			return
+		}
+		s.awaiting, s.status, s.delivered = true, status, false
+
 		return
 	}
 
-	trace.TotalRequests++
+	if s.awaiting && strings.Contains(text, BackendMarker) {
+		s.delivered = true
+	}
+}
+
+// settle records the response the scanner has been reading the body of, if any.
+func (s *traceScanner) settle() {
+	if !s.awaiting {
+		return
+	}
+	s.awaiting = false
+
+	s.trace.TotalRequests++
 	switch {
-	case status == http.StatusForbidden:
-		trace.BlockedRequests++
-	case upstreamErrorStatuses[status]:
-		trace.ErroredRequests++
-	case rejectedStatuses[status]:
-		trace.RejectedRequests++
+	case s.delivered || s.status < http.StatusBadRequest:
+		// It reached the application, so the WAF let the payload through, whatever the
+		// application then chose to answer. A success or a redirect is never a refusal,
+		// marker or not, which is also what keeps this sane against a backend that does
+		// not carry one.
+		s.trace.NotBlockedRequests++
+	case s.status == http.StatusForbidden:
+		s.trace.BlockedRequests++
+	case upstreamErrorStatuses[s.status]:
+		s.trace.ErroredRequests++
 	default:
-		trace.NotBlockedRequests++
+		// Something in front of the application refused it: a malformed request, or an
+		// encoded slash, which Apache rejects during URI translation before
+		// ModSecurity's phase 2 blocking rule can act.
+		s.trace.RejectedRequests++
 	}
 }

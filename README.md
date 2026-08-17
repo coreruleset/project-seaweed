@@ -110,11 +110,14 @@ Only three of those describe the WAF. A request can also be:
 
 - **errored** — `408`, `500`, `502`, `503`, `504`: the reverse proxy answering about itself. Seaweed exits non-zero
   when more than 10% of a run errored, or when no trace files were found, because such a run does not measure blocking.
-- **rejected** — `400`, `404`, `405`: the server in front of the backend refused the request before the payload landed.
-  The bundled mock answers `200` on every path and method, so under `docker compose up` anything here came from Apache
-  — a malformed request, or an encoded slash, which Apache rejects during URI translation before ModSecurity's phase 2
-  blocking rule can act. Point seaweed at a different backend, where `404` is an ordinary answer, and this will
-  over-count.
+- **rejected** — the server in front of the backend refused the request before the payload landed: a malformed
+  request, or an encoded slash, which Apache rejects during URI translation before ModSecurity's phase 2 blocking rule
+  can act.
+
+This is decided by reading the response body, not the status code. The mock serves `seaweed-mock-ok` in every response
+it produces, so its presence proves the request reached the application. An application's own `404` and Apache
+refusing an encoded slash are the same status code and opposite meanings; only the body separates them. A success or a
+redirect always counts as delivered, marker or not.
 
 Neither is a verdict, so neither counts for or against the WAF, and neither is in the block rate.
 
