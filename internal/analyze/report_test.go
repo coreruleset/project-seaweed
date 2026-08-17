@@ -60,7 +60,7 @@ func TestBuildReportPutsEachCVEInExactlyOneBucket(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			report := BuildReport([]reader.NucleiTraceOutput{tt.result})
+			report := BuildReport([]reader.NucleiTraceOutput{tt.result}, nil)
 
 			assert.Equal(t, tt.blocked, report.CVEsBlocked)
 			assert.Equal(t, tt.partial, report.CVEsPartially)
@@ -75,7 +75,7 @@ func TestBuildReportSumsRequestCounters(t *testing.T) {
 	report := BuildReport([]reader.NucleiTraceOutput{
 		{CVENumber: "CVE-1", TotalRequests: 2, BlockedRequests: 2},
 		{CVENumber: "CVE-2", TotalRequests: 3, BlockedRequests: 1, NotBlockedRequests: 1, ErroredRequests: 1},
-	})
+	}, nil)
 
 	assert.Equal(t, uint(5), report.TotalRequests)
 	assert.Equal(t, uint(3), report.TotalBlocked)
@@ -213,7 +213,7 @@ func TestBuildReportSeparatesUnexercisedCVEs(t *testing.T) {
 		// Detection step answered 200 and the template stopped there.
 		{CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1, Exercised: false},
 		{CVENumber: "CVE-2", TotalRequests: 1, NotBlockedRequests: 1, Exercised: true},
-	})
+	}, nil)
 
 	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised)
 	assert.Equal(t, []string{"CVE-2"}, report.CVEsNotBlocked)
@@ -226,7 +226,7 @@ func TestBuildReportSeparatesUnexercisedCVEs(t *testing.T) {
 	blocked := BuildReport([]reader.NucleiTraceOutput{
 		{CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1, Exercised: false},
 		{CVENumber: "CVE-2", TotalRequests: 1, BlockedRequests: 1, Exercised: true},
-	})
+	}, nil)
 	rate, ok = blocked.BlockRate()
 	require.True(t, ok)
 	assert.InDelta(t, 1.0, rate, 0.0001, "one tested CVE, blocked, is a 100% block rate")
@@ -235,10 +235,40 @@ func TestBuildReportSeparatesUnexercisedCVEs(t *testing.T) {
 func TestBuildReportCountsRejectedRequests(t *testing.T) {
 	report := BuildReport([]reader.NucleiTraceOutput{
 		{CVENumber: "CVE-1", TotalRequests: 2, BlockedRequests: 1, RejectedRequests: 1, Exercised: true},
-	})
+	}, nil)
 
 	assert.Equal(t, uint(1), report.TotalRejected)
 	// Rejected requests are not verdicts, so the CVE is fully blocked, not partial.
 	assert.Equal(t, []string{"CVE-1"}, report.CVEsBlocked)
 	assert.Empty(t, report.CVEsPartially)
+}
+
+// A template with no flow gate sends everything it has, so a trace holding only a bare
+// `GET /` means that was the whole attack — not that the template stopped early.
+func TestOnlyGatedTemplatesCanBeUnexercised(t *testing.T) {
+	results := []reader.NucleiTraceOutput{
+		{CVENumber: "CVE-gated", TotalRequests: 1, NotBlockedRequests: 1},
+		{CVENumber: "CVE-plain", TotalRequests: 1, NotBlockedRequests: 1},
+		{CVENumber: "CVE-plain-blocked", TotalRequests: 1, BlockedRequests: 1},
+	}
+	gated := map[string]bool{"CVE-gated": true}
+
+	report := BuildReport(results, gated)
+
+	assert.Equal(t, []string{"CVE-gated"}, report.CVEsNotExercised)
+	assert.Equal(t, []string{"CVE-plain"}, report.CVEsNotBlocked)
+	// This one is the reason it matters: a WAF block that used to be filed as untested.
+	assert.Equal(t, []string{"CVE-plain-blocked"}, report.CVEsBlocked)
+}
+
+// Without the templates, keep the pessimistic reading rather than quietly reclassifying.
+func TestWithoutTemplatesEverythingUnsentStaysUnexercised(t *testing.T) {
+	results := []reader.NucleiTraceOutput{
+		{CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1},
+	}
+
+	report := BuildReport(results, nil)
+
+	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised)
+	assert.Empty(t, report.CVEsNotBlocked)
 }

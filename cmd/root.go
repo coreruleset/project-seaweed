@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"context"
+	"log"
 
 	"github.com/coreruleset/project-seaweed/internal/analyze"
+	"github.com/coreruleset/project-seaweed/internal/templates"
 
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag/v2"
@@ -44,6 +46,8 @@ func NewRootCommand() *cobra.Command {
 		"format to output the results; can be 'github' (default), 'json' or 'slack'")
 	rootCmd.PersistentFlags().String("run-url", "",
 		"link to include in the slack message, usually the CI run")
+	rootCmd.PersistentFlags().String("templates", "nuclei-templates/http/cves",
+		"path to the Nuclei templates, used to tell a gated template from one that simply finished")
 
 	rootCmd.AddCommand(newGenMockCommand())
 
@@ -53,7 +57,16 @@ func NewRootCommand() *cobra.Command {
 func runE(cmd *cobra.Command, _ []string) error {
 	path, _ := cmd.Flags().GetString("output")
 	runURL, _ := cmd.Flags().GetString("run-url")
+	templatesPath, _ := cmd.Flags().GetString("templates")
 	format := cmd.PersistentFlags().Lookup("format").Value.String()
 
-	return analyze.ReportNucleiBlocks(path, format, runURL)
+	gated, err := templates.Gated(templatesPath)
+	if err != nil {
+		// Without the templates every CVE that sent only `GET /` stays "not exercised",
+		// which is the safe reading, so say so and carry on.
+		log.Printf("not cross-referencing templates: %v", err)
+		gated = nil
+	}
+
+	return analyze.ReportNucleiBlocks(path, format, runURL, gated)
 }
