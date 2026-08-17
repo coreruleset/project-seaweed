@@ -88,26 +88,18 @@ jobs:
         run: |
           go build
           ./project-seaweed -o output/pl4 >> "$GITHUB_OUTPUT"
-          # One line of Block Kit, so it travels as a job output.
-          echo "slack_payload=$(./project-seaweed -o output/pl4 -f slack --run-url "$RUN_URL")" >> "$GITHUB_OUTPUT"
-          for pl in 1 2 3 4; do
-            ./project-seaweed -o "output/pl$pl" -f json > "report-pl$pl.json"
-          done
-          cp report-pl4.json report.json
+          ./project-seaweed -o output/pl4 -f json > report.json
+          # One line of Block Kit carrying the whole curve, so it travels as a job output.
+          echo "slack_payload=$(./project-seaweed sweep output --format slack --run-url "$RUN_URL")" \
+            >> "$GITHUB_OUTPUT"
 
       - name: Paranoia curve
         run: |
           {
             echo "## Blocking by paranoia level"
-            echo
-            echo "| paranoia | blocked | partially | not blocked | not exercised |"
-            echo "| --- | --- | --- | --- | --- |"
-            for pl in 1 2 3 4; do
-              jq -r --arg pl "$pl" \
-                '"| PL\($pl) | \(.CVEsBlocked|length) | \(.CVEsPartially|length) |"
-                 + " \(.CVEsNotBlocked|length) | \(.CVEsNotExercised|length) |"' \
-                "report-pl$pl.json"
-            done
+            echo '```'
+            ./project-seaweed sweep output
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Compare with the previous run

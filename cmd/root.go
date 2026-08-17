@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/coreruleset/project-seaweed/internal/analyze"
 	"github.com/coreruleset/project-seaweed/internal/templates"
@@ -26,8 +27,7 @@ var FormatModeIds = map[FormatMode][]string{
 }
 
 func Execute() error {
-	rootCmd := NewRootCommand()
-	return rootCmd.ExecuteContext(context.Background())
+	return NewRootCommand().ExecuteContext(context.Background())
 }
 
 func NewRootCommand() *cobra.Command {
@@ -38,6 +38,11 @@ func NewRootCommand() *cobra.Command {
 		// A run that fails on its results is not a usage mistake.
 		SilenceUsage: true,
 	}
+	// Cobra's Print helpers go to stderr unless told otherwise, which silently sends a
+	// report into the void when a caller redirects stdout — a workflow writing a job
+	// summary, or a shell capturing a payload. Warnings stay on stderr.
+	rootCmd.SetOut(os.Stdout)
+
 	var formatMode FormatMode
 	output := new(string)
 	rootCmd.PersistentFlags().StringVarP(output, "output", "o", ".",
@@ -52,6 +57,7 @@ func NewRootCommand() *cobra.Command {
 
 	rootCmd.AddCommand(newGenMockCommand())
 	rootCmd.AddCommand(newDiffCommand())
+	rootCmd.AddCommand(newSweepCommand())
 
 	return rootCmd
 }
