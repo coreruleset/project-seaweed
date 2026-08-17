@@ -15,7 +15,7 @@ func TestLoadTakesOnlyTheStagesThatForbidARule(t *testing.T) {
 	require.Len(t, requests, 2, "the expect_ids stage is not part of this corpus")
 	assert.Equal(t, 1, skipped, "encoded_request cannot be replayed faithfully")
 
-	assert.Equal(t, "941100-1", requests[0].Title)
+	assert.Equal(t, "941100-1", requests[0].Title, "named the way go-ftw names it, so failures can be compared")
 	assert.Equal(t, []int{941100, 941110}, requests[0].Forbid)
 	assert.Equal(t, "GET", requests[0].Method)
 	assert.Equal(t, "/get?foo=bar", requests[0].URI)

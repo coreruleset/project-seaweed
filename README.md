@@ -174,10 +174,10 @@ run. `seaweed sweep output` reads each level's directory and reports them togeth
 
 ```
 ❯ ./project-seaweed sweep output
-PL1   52%  ██████████░░░░░░░░░░   1319 blocked    851 not blocked
-PL2   58%  ████████████░░░░░░░░   1460 blocked    707 not blocked
-PL3   59%  ████████████░░░░░░░░   1500 blocked    661 not blocked
-PL4   64%  █████████████░░░░░░░   1614 blocked    555 not blocked
+PL1   54%  ███████████░░░░░░░░░   1375 blocked    807 not blocked
+PL2   58%  ████████████░░░░░░░░   1467 blocked    713 not blocked
+PL3   60%  ████████████░░░░░░░░   1506 blocked    664 not blocked
+PL4   64%  █████████████░░░░░░░   1622 blocked    550 not blocked
 ```
 
 That table goes to both the job summary and the Slack message. Paranoia 4 stays the headline number and drives the
@@ -198,10 +198,13 @@ Each request carries an `X-Seaweed-Case` header so the join to the log is exact.
 Blocking is reported separately and is deliberately **not** the measurement: many of those stages carry real attack
 payloads and assert only that a neighbouring rule stays quiet, so CRS is right to block them.
 
-**The absolute rate is not yet trustworthy** — this stack is not the harness CRS runs its suite on, and until the tool
-is calibrated against go-ftw on the same stack, the failure count reflects that difference as much as any defect. It is
-not part of the weekly notification for that reason. See
-[ADR 13](docs/adr/0013-measure-false-positives-against-the-crs-suite.md).
+It is calibrated: run against CRS's own reference stack, go-ftw reports 0 failures, and against ours it reports 100 —
+of which this tool finds 97, a strict subset. Matching the ruleset to the corpus takes both to **0**. See
+[ADR 13](docs/adr/0013-measure-false-positives-against-the-crs-suite.md) and
+[ADR 14](docs/adr/0014-run-a-current-crs.md).
+
+Keep the WAF and the corpus on the same CRS release. Measuring a v4.28.0 corpus against a 4.1.0 ruleset produced 97
+false positives that were entirely an artefact of the mismatch.
 
 5. **Slack integration**
 

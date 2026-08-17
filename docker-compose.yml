@@ -12,7 +12,10 @@ services:
       timeout: 3s
       retries: 15
   crs:
-    image: "owasp/modsecurity-crs:4-apache-202404131004@sha256:9c20dd4756378de04c3587911efdf37c15614403c0540e008f16ca1cdbc63cba"
+    # A version-shaped tag, so Renovate can see it. The old pin was
+    # 4-apache-202404131004, which it could not parse, so the WAF sat sixteen months and
+    # 27 releases behind while everything measured against it looked current.
+    image: "owasp/modsecurity-crs:4.28.0-apache-202608131208@sha256:a7aff2f12712f10248e8de7ac675466e9ddf8c999df09328bd5b4ad8df50223d"
     environment:
       PORT: 8080
       BACKEND: "http://mock:8080"
