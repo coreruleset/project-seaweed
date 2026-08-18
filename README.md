@@ -84,8 +84,8 @@ fails the run instead of reporting every payload as unblocked.
 
 The mock backend answers every path with `mock/fingerprints.html`, a generated page carrying the strings that
 flow-gated Nuclei templates look for before they send their payload — both the `words` of their matchers and the
-literals inside `contains(body, ...)` style `dsl` gates, which want the same thing written differently. It is generated from the pinned templates, and CI
-fails if it drifts from them:
+literals inside `contains(body, ...)` style `dsl` gates, which want the same thing written differently. It is not
+committed — build it from the pinned templates before bringing the environment up, which is what the scan itself does:
 
 ```
 ./scripts/fetch-templates.sh
@@ -93,7 +93,8 @@ go run . gen-mock
 ```
 
 The pinned version lives in `scripts/fetch-templates.sh`. Pinning it is what makes one week's numbers comparable to
-the next, and what keeps the scan and the fingerprint page in step.
+the next. Generating the page from that same pin, on every run, is what keeps the scan and the fingerprints in step.
+If you forget, the mock never reports healthy and nothing else starts.
 
 See [docs/adr](docs/adr) for why.
 

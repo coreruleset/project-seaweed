@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"bytes"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBodyLiterals(t *testing.T) {
@@ -54,4 +58,30 @@ func TestBodyLiterals(t *testing.T) {
 			assert.Equal(t, tt.want, bodyLiterals(tt.expression))
 		})
 	}
+}
+
+// The page is generated at scan time and not committed, so nothing downstream would
+// notice a harvester that quietly stopped matching. This is the only thing that would.
+func TestGenMockRefusesAShortPage(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "cve.yaml"), []byte(`id: CVE-2024-0001
+flow: http(1) && http(2)
+http:
+  - matchers:
+      - type: word
+        internal: true
+        words:
+          - "the only fingerprint here"
+`), 0o600))
+	out := filepath.Join(dir, "fingerprints.html")
+
+	command := NewRootCommand()
+	command.SetOut(&bytes.Buffer{})
+	command.SetArgs([]string{"gen-mock", "--templates", dir, "--out", out})
+
+	err := command.Execute()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "found only 1 gate words")
+	assert.NoFileExists(t, out, "a page that failed the floor must not be left behind")
 }

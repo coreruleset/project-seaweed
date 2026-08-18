@@ -174,3 +174,8 @@ logs/
 
 # CRS regression suite fetched by scripts/fetch-crs-tests.sh
 crs-tests/
+
+# Generated from nuclei-templates/ by `go run . gen-mock`, which the scan runs. Both the
+# page and the templates it is built from are derived from one pinned version, so neither
+# belongs in git.
+mock/fingerprints.html
