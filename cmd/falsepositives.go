@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -27,6 +28,9 @@ func newFalsePositivesCommand() *cobra.Command {
 		"ModSecurity JSON audit log for this run, copied out of the container; without it only "+
 			"blocking is reported, which does not measure false positives")
 	cmd.Flags().Bool("list", false, "list each false positive rather than only counting them")
+	cmd.Flags().Bool("no-send", false,
+		"skip the replay and only read --audit-log, for when the requests were sent by an "+
+			"earlier invocation and the log has since been copied out of the container")
 
 	return cmd
 }
@@ -36,6 +40,11 @@ func runFalsePositives(cmd *cobra.Command, args []string) error {
 	timeout, _ := cmd.Flags().GetDuration("timeout")
 	auditLog, _ := cmd.Flags().GetString("audit-log")
 	list, _ := cmd.Flags().GetBool("list")
+	noSend, _ := cmd.Flags().GetBool("no-send")
+
+	if noSend && auditLog == "" {
+		return errors.New("--no-send needs --audit-log: there is nothing else to read")
+	}
 
 	requests, skipped, err := benign.Load(tests)
 	if err != nil {
@@ -46,15 +55,25 @@ func runFalsePositives(cmd *cobra.Command, args []string) error {
 	}
 
 	results := benign.Replay(args[0], requests, timeout)
+	if noSend {
+		// The requests were sent already; build results that carry the requests without
+		// claiming anything about their responses.
+		results = make([]benign.Result, 0, len(requests))
+		for _, request := range requests {
+			results = append(results, benign.Result{Request: request})
+		}
+	}
 	summary := benign.Summarise(results, skipped)
 
-	rate, ok := summary.Rate()
-	if !ok {
-		return fmt.Errorf("no benign request got an answer from %s", args[0])
+	if !noSend {
+		rate, ok := summary.Rate()
+		if !ok {
+			return fmt.Errorf("no benign request got an answer from %s", args[0])
+		}
+		cmd.Printf("benign_requests=%d\n", summary.Total-summary.Errored)
+		cmd.Printf("benign_blocked=%d\n", summary.Blocked)
+		cmd.Printf("benign_blocked_rate=%.2f\n", rate*100)
 	}
-	cmd.Printf("benign_requests=%d\n", summary.Total-summary.Errored)
-	cmd.Printf("benign_blocked=%d\n", summary.Blocked)
-	cmd.Printf("benign_blocked_rate=%.2f\n", rate*100)
 	if summary.Errored > 0 {
 		cmd.Printf("benign_errored=%d\n", summary.Errored)
 	}

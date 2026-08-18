@@ -35,3 +35,19 @@ func TestSubcommandsWriteTheirReportToStdout(t *testing.T) {
 func TestRootCommandWritesToStdoutByDefault(t *testing.T) {
 	assert.Equal(t, os.Stdout, NewRootCommand().OutOrStdout())
 }
+
+// --no-send exists so the workflow can send benign traffic while the WAF is up, copy the
+// audit log out of the container, and only then ask what fired. Without the log there is
+// nothing for it to do.
+func TestNoSendRequiresAnAuditLog(t *testing.T) {
+	var out bytes.Buffer
+	command := NewRootCommand()
+	command.SetOut(&out)
+	command.SetErr(&out)
+	command.SetArgs([]string{"false-positives", "127.0.0.1:8080", "--no-send"})
+
+	err := command.Execute()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--no-send needs --audit-log")
+}

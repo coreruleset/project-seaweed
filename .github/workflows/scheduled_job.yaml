@@ -35,6 +35,15 @@ jobs:
         # The version in .env is what makes one week's numbers comparable to the next.
         run: ./scripts/fetch-templates.sh
 
+      - name: Fetch the CRS regression suite
+        # The benign corpus. Keep its version and the WAF's on the same CRS release:
+        # a mismatch produced 97 false positives that were purely an artefact of it.
+        run: ./scripts/fetch-crs-tests.sh
+
+      - name: Build seaweed
+        # Before the scan, because the benign replay runs inside the loop.
+        run: go build
+
       - name: Run the scan
         # docker-compose.yml is the only definition of the test environment. It holds
         # nuclei behind a WAF healthcheck that proves a request round-trips to the
@@ -43,8 +52,16 @@ jobs:
         run: |
           for pl in 1 2 3 4; do
             mkdir -p "output/pl$pl" "logs/pl$pl"
-            SEAWEED_PARANOIA="$pl" SEAWEED_OUTPUT="./output/pl$pl" \
-              docker compose up --exit-code-from nuclei
+            export SEAWEED_PARANOIA="$pl" SEAWEED_OUTPUT="./output/pl$pl"
+
+            # Benign traffic first, with only the WAF up: what CRS blocks here it should
+            # not have. Its verdict needs the audit log, which is read after the copy
+            # below, so this pass only sends.
+            docker compose up -d --wait mock crs
+            ./project-seaweed false-positives 127.0.0.1:8080 > "fp-pl$pl.txt" \
+              || echo "::warning::benign replay failed at PL$pl"
+
+            docker compose up --exit-code-from nuclei
             # While the containers are still around: down removes them.
             docker compose cp crs:/var/log/apache2/. "logs/pl$pl/" \
               || echo "::warning::no WAF logs to collect for PL$pl"
@@ -86,7 +103,6 @@ jobs:
         # Paranoia 4 is the headline: it is what has been reported all along, and what the
         # notification and the run-to-run diff use.
         run: |
-          go build
           ./project-seaweed -o output/pl4 >> "$GITHUB_OUTPUT"
           ./project-seaweed -o output/pl4 -f json > report.json
           # One line of Block Kit carrying the whole curve, so it travels as a job output.
@@ -98,9 +114,33 @@ jobs:
           {
             echo "## Blocking by paranoia level"
             echo '```'
-            ./project-seaweed sweep output
+            ./project-seaweed sweep output | tee /dev/stderr
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: False positives
+        # The other half of the curve. CRS's own regression suite says which rules must
+        # not fire; anything here is the ruleset contradicting itself, and the number is
+        # only meaningful because the WAF and the suite are on the same CRS release.
+        run: |
+          {
+            echo "## False positives by paranoia level"
+            echo
+            echo "| paranoia | benign requests | blocked | rules that should not have fired |"
+            echo "| --- | --- | --- | --- |"
+            for pl in 1 2 3 4; do
+              ./project-seaweed false-positives 127.0.0.1:8080 --no-send \
+                --audit-log "logs/pl$pl/modsec_audit.json" > "fp-report-pl$pl.txt" 2>/dev/null \
+                || echo "false_positives=?" > "fp-report-pl$pl.txt"
+              requests=$(grep -oE 'benign_requests=[0-9]+' "fp-pl$pl.txt" | cut -d= -f2)
+              blocked=$(grep -oE 'benign_blocked=[0-9]+' "fp-pl$pl.txt" | cut -d= -f2)
+              positives=$(grep -oE 'false_positives=[0-9?]+' "fp-report-pl$pl.txt" | cut -d= -f2)
+              echo "| PL$pl | ${requests:-?} | ${blocked:-?} | ${positives:-?} |"
+            done
+            echo
+            echo "Blocking is not the measurement: many of those stages carry real attack"
+            echo "payloads and assert only that a neighbouring rule stays quiet."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Compare with the previous run
         # Informational: a diff that cannot be produced is not a reason to fail a scan
