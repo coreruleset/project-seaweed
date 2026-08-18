@@ -170,6 +170,23 @@ func TestExercisedTracksWhetherAPayloadWasSent(t *testing.T) {
 			want:  true,
 		},
 		{
+			// The shape that was being missed: `flow: http(1) || http(2)` templates that
+			// POST their payload to the root path. A probe by path, an attack by method.
+			name:  "a payload posted to the root",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nPOST / HTTP/1.1\n",
+			want:  true,
+		},
+		{
+			name:  "a HEAD probe of the root is still a probe",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nHEAD / HTTP/1.1\n",
+		},
+		{
+			// CVE-2017-7269 exploits IIS WebDAV through the method itself.
+			name:  "an exotic method aimed at the root",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nPROPFIND / HTTP/1.1\n",
+			want:  true,
+		},
+		{
 			name: "root probe first, payload second",
 			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET / HTTP/1.1\n" +
 				"[CVE-1111-1] Dumped HTTP request for http://crs:8080/x\nPOST /upload.php HTTP/1.1\n",
