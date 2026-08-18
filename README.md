@@ -192,6 +192,10 @@ false-positives` measures those against CRS's own regression suite:
 ./project-seaweed false-positives 127.0.0.1:8080 --audit-log logs/pl4/modsec_audit.json
 ```
 
+The weekly run does this at every paranoia level and puts the result in the job summary. It sends the benign traffic
+while only the WAF is up, then reads the audit log after copying it out of the container — `--no-send` is the second
+half of that split.
+
 It replays every stage of the suite that asserts a rule must *not* fire, then checks the audit log for whether one did.
 Each request carries an `X-Seaweed-Case` header so the join to the log is exact.
 
