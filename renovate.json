@@ -2,5 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>coreruleset/renovate-config"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Corpus versions pinned in the fetch scripts. The shared config's regex manager only reads workflow files, so without this the Nuclei template corpus and the CRS regression suite -- the two inputs that decide every number this project publishes -- are the only dependencies nothing bumps.",
+      "managerFilePatterns": [
+        "/^scripts/.+\\.sh$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+\\w+=\"\\$\\{\\w+:-(?<currentValue>[^}\"]+)\\}\""
+      ]
+    }
   ]
 }
