@@ -51,6 +51,7 @@ Available Commands:
   false-positives Replay the CRS regression suite and count the rules that fire when they should not
   gen-mock        Generate the mock backend page from Nuclei flow-gated templates
   help            Help about any command
+  rules           Report which CRS rules did the blocking, and which fired without managing it
   sweep           Report every paranoia level under a directory
 
 Flags:
@@ -197,6 +198,10 @@ while only the WAF is up, then reads the audit log after copying it out of the c
 half of that split.
 
 It replays every stage of the suite that asserts a rule must *not* fire, then checks the audit log for whether one did.
+
+`seaweed rules logs/pl4/modsec_audit.json` reads the same log from the other direction: which rules contributed to
+blocks, and which attack rules fired without managing one. A transaction is blocked when 949110 fired, so this needs no
+join with the trace files. Contribution rather than cause, because CRS blocks on an accumulated score.
 Each request carries an `X-Seaweed-Case` header so the join to the log is exact.
 
 Blocking is reported separately and is deliberately **not** the measurement: many of those stages carry real attack
