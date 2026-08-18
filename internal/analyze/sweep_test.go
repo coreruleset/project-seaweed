@@ -70,8 +70,27 @@ func TestSweepPayloadLeadsWithTheHighestLevel(t *testing.T) {
 	// The curve is the point: every level has to be in the message, not just the headline.
 	assert.Contains(t, blocks[1].Text.Text, "PL1")
 	assert.Contains(t, blocks[1].Text.Text, "PL4")
-	assert.True(t, strings.HasPrefix(blocks[1].Text.Text, "```"), "the table needs a code block to align")
+	assert.NotContains(t, blocks[1].Text.Text, "```",
+		"emoji render as emoji inside a code block, so the bars must not be in one")
+	assert.Contains(t, blocks[1].Text.Text, "\U0001F7E9", "the bars are the visual")
 	assert.Contains(t, string(encoded), "view the run")
+}
+
+// The bar exists to show the climb from PL1 to PL4. A real curve gains about 6 points a
+// level, so a bar coarse enough to round neighbouring levels together shows nothing: at
+// ten cells the run this was designed against rendered 48, 53, 60 and 64 percent as 5, 5,
+// 6 and 6 filled cells.
+func TestSweepBarsSeparateAdjacentParanoiaLevels(t *testing.T) {
+	measured := []float64{0.41, 0.48, 0.55, 0.60}
+
+	seen := map[string]float64{}
+	for _, rate := range measured {
+		drawn := emojiBar(rate)
+		if other, clash := seen[drawn]; clash {
+			t.Errorf("%.0f%% and %.0f%% draw the same bar: %s", other*100, rate*100, drawn)
+		}
+		seen[drawn] = rate
+	}
 }
 
 func TestSweepPayloadWithNoLevelsFallsBackToAnEmptyReport(t *testing.T) {

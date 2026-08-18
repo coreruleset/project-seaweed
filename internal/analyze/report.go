@@ -35,8 +35,13 @@ type GlobalReport struct {
 }
 
 const (
-	// barCells is the width of the block-rate bar in the Slack message.
+	// barCells is the width of the block-rate bar in the terminal and the job summary.
 	barCells = 20
+	// emojiBarCells is the width of the Slack one, in emoji. Fifteen: ten cannot tell the
+	// paranoia levels apart, because a real curve climbs about 6 points a level and each
+	// cell is worth 10, so the run this was designed against rendered as 5, 5, 6, 6 — a
+	// bar that shows none of the climb it is there to show. Twenty wraps on a narrow window.
+	emojiBarCells = 15
 	// completedColour is the stripe on a run that finished, whatever the WAF scored.
 	completedColour = "#28a745"
 )
@@ -146,6 +151,18 @@ func bar(rate float64) string {
 	return strings.Repeat("\u2588", filled) + strings.Repeat("\u2591", barCells-filled)
 }
 
+// emojiBar is the Slack bar. Slack renders emoji as emoji inside a code block too, which
+// destroys the monospace alignment a code block exists for, so the two cannot be combined:
+// this one is used in plain sections, and bar() stays for the terminal and the job summary.
+//
+// Ten cells rather than twenty because an emoji is about twice as wide as a character, and
+// twenty wrap on a narrow window. The exact rate is printed beside it either way.
+func emojiBar(rate float64) string {
+	filled := int(math.Round(rate * emojiBarCells))
+
+	return strings.Repeat("\U0001F7E9", filled) + strings.Repeat("\u2B1C", emojiBarCells-filled)
+}
+
 // SlackPayload renders the report as Slack Block Kit.
 func SlackPayload(report GlobalReport, runURL string) map[string]any {
 	headline := "WAF test: no CVE reached a verdict"
@@ -154,7 +171,7 @@ func SlackPayload(report GlobalReport, runURL string) map[string]any {
 	if rate, ok := report.BlockRate(); ok {
 		percent := int(math.Round(rate * 100))
 		headline = fmt.Sprintf("WAF test: %d%% of CVEs blocked", percent)
-		summary = fmt.Sprintf("`%s`  *%d%%*", bar(rate), percent)
+		summary = fmt.Sprintf("%s  *%d%%*", emojiBar(rate), percent)
 	}
 
 	context := fmt.Sprintf(
