@@ -44,6 +44,26 @@ services:
       # instead and ModSecurity cannot create its audit log. Copy them out afterwards
       # with `docker compose cp crs:/var/log/apache2/. logs/`.
       ERRORLOG: "/var/log/apache2/error.log"
+    # Apache decodes %2F during URI translation and answers 404 before ModSecurity's
+    # phase 2 runs, so encoded-slash traversal never reaches the rules: 56 CVEs a run got
+    # no verdict from the WAF at all. AllowEncodedSlashes NoDecode passes the path through
+    # intact, and CRS then blocks them.
+    #
+    # It has to go inside the vhost. The directive is per-server-and-vhost and a vhost does
+    # not inherit it, so setting it at the top level of httpd.conf looks right, applies to
+    # nothing, and leaves the 404s exactly where they were.
+    #
+    # The image builds this file from a template at start-up, which is why it is patched
+    # here rather than mounted: a mounted copy would have to reproduce the proxy
+    # configuration and would drift on every CRS bump. If the pattern ever stops matching,
+    # the healthcheck below fails and the scan stops rather than quietly losing the CVEs.
+    command:
+      - sh
+      - -c
+      - |
+        sed -i '/^<VirtualHost/a\  AllowEncodedSlashes NoDecode' \
+          /usr/local/apache2/conf/extra/httpd-vhosts.conf
+        exec httpd-foreground
     hostname: crs
     # Published so host-side tools can reach the WAF: `seaweed false-positives` replays
     # the CRS regression suite from outside the compose network.
@@ -56,9 +76,17 @@ services:
       # Proves the mock's marker round-trips through the WAF, not just that Apache is
       # listening: an unreachable backend answers 503 and every payload then scores as
       # "not blocked". The User-Agent override is needed because CRS blocks curl's own.
+      #
+      # The second request proves AllowEncodedSlashes took effect, by behaviour rather
+      # than by grepping the config: an encoded slash has to reach the backend and come
+      # back with the marker. Without the directive Apache answers 404 and the WAF never
+      # sees the request — which is not a broken WAF, so nothing else would notice, and
+      # 56 CVEs would quietly stop getting a verdict.
       test:
         - "CMD-SHELL"
-        - "curl -fsS -A 'Mozilla/5.0' http://127.0.0.1:8080/ | grep -q seaweed-mock-ok"
+        - >-
+          curl -fsS -A 'Mozilla/5.0' http://127.0.0.1:8080/ | grep -q seaweed-mock-ok &&
+          curl -fsS -A 'Mozilla/5.0' http://127.0.0.1:8080/x%2Fy | grep -q seaweed-mock-ok
       interval: 3s
       timeout: 5s
       retries: 20
