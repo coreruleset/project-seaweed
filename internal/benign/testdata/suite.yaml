@@ -1,6 +1,7 @@
 ---
+rule_id: 941100
 tests:
-  - test_title: "941100-1"
+  - test_id: 1
     stages:
       - input:
           dest_addr: 127.0.0.1
@@ -14,7 +15,7 @@ tests:
         output:
           log:
             no_expect_ids: [941100, 941110]
-  - test_title: "941100-2 expects a block, so it is not our corpus"
+  - test_id: 2
     stages:
       - input:
           method: GET
@@ -24,7 +25,7 @@ tests:
         output:
           log:
             expect_ids: [941100]
-  - test_title: "941100-3 has a body"
+  - test_id: 3
     stages:
       - input:
           method: POST
@@ -35,7 +36,7 @@ tests:
         output:
           log:
             no_expect_ids: [941100]
-  - test_title: "941100-4 cannot be replayed"
+  - test_id: 4
     stages:
       - input:
           encoded_request: "R0VUIC8gSFRUUC8xLjEK"

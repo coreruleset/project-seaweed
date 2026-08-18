@@ -39,10 +39,13 @@ type Header struct {
 	Value string
 }
 
-// suite mirrors the parts of a go-ftw test file this needs.
+// suite mirrors the parts of a go-ftw test file this needs. A test is named by the rule
+// it belongs to and its index, the same way go-ftw names it, so failures from the two can
+// be compared directly.
 type suite struct {
-	Tests []struct {
-		Title  string `yaml:"test_title"`
+	RuleID int `yaml:"rule_id"`
+	Tests  []struct {
+		TestID int `yaml:"test_id"`
 		Stages []struct {
 			Input struct {
 				Method  string    `yaml:"method"`
@@ -98,7 +101,7 @@ func Load(root string) (requests []Request, skipped int, err error) {
 				requests = append(requests, Request{
 					ID:      len(requests) + 1,
 					Forbid:  stage.Output.Log.NoExpectIDs,
-					Title:   test.Title,
+					Title:   fmt.Sprintf("%d-%d", parsed.RuleID, test.TestID),
 					Method:  orDefault(stage.Input.Method, "GET"),
 					URI:     orDefault(stage.Input.URI, "/"),
 					Version: orDefault(stage.Input.Version, "HTTP/1.1"),
