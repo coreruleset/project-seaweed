@@ -185,6 +185,10 @@ That table goes to both the job summary and the Slack message. Paranoia 4 stays 
 run-to-run diff, for continuity. Set `SEAWEED_PARANOIA` to scan a single level locally, and `SEAWEED_OUTPUT` to send
 its traces somewhere of their own.
 
+Templates attacking an authenticated endpoint interpolate `{{username}}` and friends. `docker-compose.yml` supplies
+them with `-var`; without them nuclei refuses to send the request and the CVE is reported as never exercised. The
+values are irrelevant — the mock accepts anything, and what is measured is whether the WAF stops the payload.
+
 **The curve only shows one side.** More blocking at a higher paranoia level costs false positives. `seaweed
 false-positives` measures those against CRS's own regression suite:
 

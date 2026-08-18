@@ -64,6 +64,12 @@ services:
     hostname: nuclei
     # -dc keeps nuclei from merging templates that send identical requests into one
     # trace file headed by a cluster hash, whose requests cannot be attributed to a CVE.
+    #
+    # -var supplies the credentials that templates attacking an authenticated endpoint
+    # interpolate. Without them nuclei refuses to send the request — "unresolved variables
+    # found: username,password" — and the CVE is reported as never exercised. The values
+    # are irrelevant: the mock accepts anything, and what is measured is whether the WAF
+    # stops the payload, not whether the login succeeds.
     command: >-
       -u http://crs:8080
       -t /templates/http/cves
@@ -75,6 +81,10 @@ services:
       -srd /output
       -dc
       -duc
+      -var username=seaweed
+      -var password=seaweed
+      -var token=seaweed
+      -var api_key=seaweed
     volumes:
       - ${SEAWEED_OUTPUT:-./output}:/output:rw
       # Pinned by scripts/fetch-templates.sh, so week-to-week results are comparable
