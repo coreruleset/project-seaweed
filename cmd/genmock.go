@@ -44,6 +44,13 @@ func bodyLiterals(expression string) []string {
 	return found
 }
 
+// minFingerprints is a floor, not a target: the page carries 870 today. The failure it
+// guards against is silent. If a template format change stops the harvester below from
+// matching, the page comes out short, every flow gate it should have satisfied fails, and
+// the scan reports those CVEs as never exercised without anything erroring — which is
+// exactly the state this project started in, at 1 exercised CVE out of 114.
+const minFingerprints = 500
+
 func newGenMockCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gen-mock",
@@ -73,8 +80,10 @@ func runGenMock(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	if len(words) == 0 {
-		return fmt.Errorf("no flow gate words found under %q: is it a Nuclei templates directory?", templates)
+	if len(words) < minFingerprints {
+		return fmt.Errorf("found only %d gate words under %q, expected at least %d: either that "+
+			"is not a Nuclei templates directory, or the template format changed and the "+
+			"harvester in this file no longer matches it", len(words), templates, minFingerprints)
 	}
 
 	if err := os.WriteFile(out, []byte(renderFingerprintPage(words)), 0o644); err != nil {

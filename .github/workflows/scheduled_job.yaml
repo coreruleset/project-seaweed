@@ -32,8 +32,15 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Fetch the pinned templates
-        # The version in .env is what makes one week's numbers comparable to the next.
+        # The version in scripts/fetch-templates.sh is what makes one week's numbers
+        # comparable to the next.
         run: ./scripts/fetch-templates.sh
+
+      - name: Build the mock backend page
+        # Generated from the templates fetched above rather than committed, so the page
+        # and the templates cannot disagree — and a template bump needs no second commit
+        # to go with it.
+        run: go run . gen-mock
 
       - name: Fetch the CRS regression suite
         # The benign corpus. Keep its version and the WAF's on the same CRS release:

@@ -4,8 +4,8 @@
 # wholesale, so do not keep anything of your own in it.
 #
 # Pinning the version is what makes one week's numbers comparable to the next. Bumping it
-# changes the results on purpose, and CI will fail until mock/fingerprints.html is
-# regenerated from the new version in the same change.
+# changes the results on purpose. Nothing else needs changing with it: mock/fingerprints.html
+# is generated from whatever this fetches, by the run that uses it.
 set -euo pipefail
 
 # renovate: datasource=github-releases depName=projectdiscovery/nuclei-templates
