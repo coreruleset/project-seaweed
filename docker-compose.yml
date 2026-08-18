@@ -72,7 +72,7 @@ services:
     # stops the payload, not whether the login succeeds.
     command: >-
       -u http://crs:8080
-      -t /templates/http/cves
+      -t http/cves
       -tags ${SEAWEED_TAGS:-lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce}
       -type http
       -stats
@@ -89,7 +89,11 @@ services:
       - ${SEAWEED_OUTPUT:-./output}:/output:rw
       # Pinned by scripts/fetch-templates.sh, so week-to-week results are comparable
       # and mock/fingerprints.html is generated from the same templates the scan runs.
-      - ./nuclei-templates:/templates:ro
+      #
+      # Mounted where nuclei keeps its own templates rather than at an arbitrary path:
+      # it refuses to load payload wordlists from outside that directory, and templates
+      # needing one fail to compile with "access to helper file ... denied".
+      - ./nuclei-templates:/root/nuclei-templates:ro
     depends_on:
       crs:
         condition: service_healthy
