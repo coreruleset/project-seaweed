@@ -59,6 +59,20 @@ services:
       interval: 3s
       timeout: 5s
       retries: 20
+  interactsh:
+    # Templates that prove a vulnerability by calling out interpolate {{interactsh-url}},
+    # and nuclei will not send the request without a server to get one from. Self-hosted
+    # so nothing leaves the runner: the callback never arrives, because the domain does
+    # not resolve, and it does not need to — what is measured is whether the WAF stopped
+    # the request, not whether the target phoned home.
+    image: "projectdiscovery/interactsh-server:latest"
+    hostname: interactsh
+    command: >-
+      -domain oast.seaweed.test
+      -skip-acme
+      -disable-update-check
+      -http-port 8080
+
   nuclei:
     image: projectdiscovery/nuclei:latest@sha256:aa3a9c0894629405b5bbe644765dfffd6ff87b7663b5f1d64bcbc01341da335a
     hostname: nuclei
@@ -76,7 +90,7 @@ services:
       -tags ${SEAWEED_TAGS:-lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce}
       -type http
       -stats
-      -ni
+      -iserver http://interactsh:8080
       -sresp
       -srd /output
       -dc
@@ -97,3 +111,5 @@ services:
     depends_on:
       crs:
         condition: service_healthy
+      interactsh:
+        condition: service_started
