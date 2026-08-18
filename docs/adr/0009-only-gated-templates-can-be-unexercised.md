@@ -30,6 +30,14 @@ report was hiding in a bucket that says the opposite.
 A CVE is "not exercised" only if its template declares a `flow` *and* the trace shows
 nothing but a bare `GET /`.
 
+> **Amended 2026-08-18.** "A bare `GET /`" originally meant any request to `/`, because
+> the reader matched the path and discarded the method. Templates that aim their payload
+> at the root path and carry it in the body — `flow: http(1) || http(2)` POSTing an RCE
+> blob, for one — were therefore read as probes. The test is now the method as well: `GET`
+> and `HEAD` to `/` are probes, anything else is an attack. Measured on run 32088128453,
+> this reclaims 5 CVEs at PL4 (47 unexercised → 42), 3 of them blocks the report was
+> discarding, and 4 at PL1 (43 → 39).
+
 `seaweed` reads the templates to know which ids are gated, defaulting to
 `nuclei-templates/` where `scripts/fetch-templates.sh` puts them, overridable with
 `--templates`. When they cannot be read it logs and keeps the old pessimistic reading,

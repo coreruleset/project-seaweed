@@ -26,7 +26,8 @@ var (
 	responsePattern = regexp.MustCompile(`^HTTP/1\.1\s(\d{3})`)
 
 	// The request line of a dumped request, e.g. "GET /wp-admin/x.php?a=1 HTTP/1.1".
-	requestPattern = regexp.MustCompile(`^[A-Z]+ (\S+) HTTP/1\.1`)
+	// The method matters as much as the path: see line().
+	requestPattern = regexp.MustCompile(`^([A-Z]+) (\S+) HTTP/1\.1`)
 )
 
 // upstreamErrorStatuses are answers the reverse proxy gives about itself rather than
@@ -38,6 +39,13 @@ var upstreamErrorStatuses = map[int]bool{
 	http.StatusBadGateway:          true,
 	http.StatusServiceUnavailable:  true,
 	http.StatusGatewayTimeout:      true,
+}
+
+// probeMethods carry nothing a WAF could object to. Any other method aimed at the root
+// path is a template sending something, which is the distinction the path alone misses.
+var probeMethods = map[string]bool{
+	http.MethodGet:  true,
+	http.MethodHead: true,
 }
 
 // BackendMarker is served in the body of every response the mock backend produces, on
@@ -149,9 +157,15 @@ func (s *traceScanner) line(text string) {
 
 	// A template whose every request is a bare "GET /" never sent a payload: its
 	// detection step did not match, so the WAF was never asked about this CVE.
+	//
+	// The method is half of that test. Plenty of templates aim their payload at the root
+	// path and carry it in the body — `flow: http(1) || http(2)` sending an RCE blob to
+	// POST /, for one — which is a probe only by path. Five CVEs a run were reported as
+	// never tested when the WAF had already answered for them, three of those answers
+	// being blocks.
 	if request := requestPattern.FindStringSubmatch(text); request != nil {
 		s.settle()
-		if request[1] != "/" {
+		if !probeMethods[request[1]] || request[2] != "/" {
 			s.trace.Exercised = true
 		}
 
