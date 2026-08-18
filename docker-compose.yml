@@ -87,10 +87,19 @@ services:
     # found: username,password" — and the CVE is reported as never exercised. The values
     # are irrelevant: the mock accepts anything, and what is measured is whether the WAF
     # stops the payload, not whether the login succeeds.
+    #
+    # Every CVE template under http/cves, not a selection of vulnerability classes. The
+    # tag list this replaces looked exhaustive and was not: it selected 3311 of the 4149
+    # templates, and the 838 it dropped were 838 distinct CVEs no other template covered.
+    # 667 of them were dropped for carrying `vuln` rather than a class tag.
+    #
+    # SEAWEED_TAGS still narrows the run while iterating; -etags keeps the handful of dos
+    # and fuzz templates out, which are the only ones here that misbehave against a mock.
     command: >-
       -u http://crs:8080
       -t http/cves
-      -tags ${SEAWEED_TAGS:-lfi,xss,fileupload,xxe,injection,traversal,disclosure,auth-bypass,ssrf,sqli,oast,rce}
+      -etags dos,fuzz
+      ${SEAWEED_TAGS:+-tags} ${SEAWEED_TAGS:-}
       -type http
       -stats
       -iserver http://interactsh:8080

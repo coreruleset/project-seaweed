@@ -64,8 +64,8 @@ Flags:
 Use "seaweed [command] --help" for more information about a command.
 ```
 
-Which CVEs get tested is a property of the scan, not the reporter. Set `SEAWEED_TAGS` to override the Nuclei tags in
-`docker-compose.yml`:
+Which CVEs get tested is a property of the scan, not the reporter. The scan runs every CVE template under
+`http/cves` — 4149 of them. Set `SEAWEED_TAGS` to narrow that while iterating, which is much faster:
 
 ```
 SEAWEED_TAGS=xss,sqli docker compose up
@@ -168,8 +168,8 @@ The `slack` format writes a Block Kit message on a single line, which the workfl
 
 4. **Scan History**
 
-The recommended usage of this tool is in a CI/CD environment like GitHub Actions. The workflow runs weekly against the
-tags listed in `docker-compose.yml` — xss, rce, sqli and the other common web CVE categories.
+The recommended usage of this tool is in a CI/CD environment like GitHub Actions. The workflow runs weekly against
+every CVE template in the pinned Nuclei corpus.
 
 It scans at every paranoia level, because one level is one point on a curve and PL1 is what most CRS installs actually
 run. `seaweed sweep output` reads each level's directory and reports them together:
