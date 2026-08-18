@@ -65,7 +65,7 @@ services:
     # so nothing leaves the runner: the callback never arrives, because the domain does
     # not resolve, and it does not need to — what is measured is whether the WAF stopped
     # the request, not whether the target phoned home.
-    image: "projectdiscovery/interactsh-server:latest"
+    image: "projectdiscovery/interactsh-server:v1.3.1@sha256:f75d1fdeb0598012ce4560158232a9ad99701da28b31c141dc95d03402e4aa4f"
     hostname: interactsh
     command: >-
       -domain oast.seaweed.test
@@ -74,7 +74,7 @@ services:
       -http-port 8080
 
   nuclei:
-    image: projectdiscovery/nuclei:latest@sha256:aa3a9c0894629405b5bbe644765dfffd6ff87b7663b5f1d64bcbc01341da335a
+    image: "projectdiscovery/nuclei:v3.11.1@sha256:582d5546902e67052097cb2d07296c642d50a1afc5e44623cb038845df9a32eb"
     hostname: nuclei
     # -dc keeps nuclei from merging templates that send identical requests into one
     # trace file headed by a cluster hash, whose requests cannot be attributed to a CVE.
