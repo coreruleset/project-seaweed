@@ -171,6 +171,14 @@ func TestBar(t *testing.T) {
 	}
 }
 
+func TestEmojiBar(t *testing.T) {
+	assert.Equal(t, strings.Repeat("\u2B1C", emojiBarCells), emojiBar(0))
+	assert.Equal(t, strings.Repeat("\U0001F7E9", emojiBarCells), emojiBar(1))
+	for percent := 0; percent <= 100; percent++ {
+		assert.Equal(t, emojiBarCells, len([]rune(emojiBar(float64(percent)/100))), "at %d%%", percent)
+	}
+}
+
 func TestSlackPayloadIsValidBlockKit(t *testing.T) {
 	report := GlobalReport{
 		TotalRequests: 100, TotalErrored: 4,

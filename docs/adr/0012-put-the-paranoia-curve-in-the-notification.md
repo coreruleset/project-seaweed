@@ -21,6 +21,20 @@ the counts behind them — for `text`, and Block Kit with that table inside a co
 `slack`. Slack only aligns columns inside a code block, so the rows are padded to a
 constant width and there is a test asserting that.
 
+> **Amended 2026-08-18.** The Slack message no longer uses that table. It draws one emoji
+> bar per level in a plain section instead, which is legible at a glance and does not
+> depend on a monospace font. The two cannot be combined: Slack renders emoji as emoji
+> inside a code block too, so putting them there destroys the alignment the code block is
+> for. `SweepTable` is unchanged and still serves the terminal and the job summary, where
+> the counts stay beside each bar; in Slack those move to their own line, since nothing can
+> be aligned into a column after an emoji.
+>
+> The bar is 15 cells, not the 20 of the text one and not the 10 first written. A real
+> curve gains about 6 points a level, so 10 cells round neighbouring levels onto the same
+> bar — the run this was designed against rendered 48, 53, 60 and 64 percent as 5, 5, 6 and
+> 6 filled cells, showing none of the climb the bar exists to show. Caught by rendering the
+> real payload rather than the fixture; there is now a test over the measured rates.
+
 The headline stays the highest level, now named in the text ("64% of CVEs blocked at PL4"),
 for continuity with the single number this project reported before it swept anything. The
 run-to-run diff still compares PL4 alone.

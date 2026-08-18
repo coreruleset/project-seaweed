@@ -32,9 +32,29 @@ func SweepTable(levels []Level) string {
 	return table.String()
 }
 
+// sweepBars renders the levels as one emoji bar per line, for Slack. The counts that
+// SweepTable puts beside each bar do not come along: emoji are not monospace, so a column
+// after them cannot be aligned. They are summarised for the headline level instead, which
+// is the level anyone reading a notification is asking about.
+func sweepBars(levels []Level) string {
+	var bars strings.Builder
+	for _, level := range levels {
+		rate, ok := level.Report.BlockRate()
+		if !ok {
+			fmt.Fprintf(&bars, "`%s`  no CVE reached a verdict\n", strings.ToUpper(level.Name))
+
+			continue
+		}
+		fmt.Fprintf(&bars, "`%s`  %s  *%d%%*\n",
+			strings.ToUpper(level.Name), emojiBar(rate), int(math.Round(rate*100)))
+	}
+
+	return strings.TrimRight(bars.String(), "\n")
+}
+
 // SweepPayload renders a sweep as Slack Block Kit. The last level is the headline, for
 // continuity with the single number this project reported before it swept anything; the
-// table is what the reader actually wants.
+// bars are what the reader actually wants.
 func SweepPayload(levels []Level, runURL string) map[string]any {
 	if len(levels) == 0 {
 		return SlackPayload(GlobalReport{}, runURL)
@@ -47,12 +67,19 @@ func SweepPayload(levels []Level, runURL string) map[string]any {
 			int(math.Round(rate*100)), strings.ToUpper(headline.Name))
 	}
 
-	context := fmt.Sprintf("%d CVEs seen  ·  %d requests at %s  ·  %d rejected by the server  ·  %d upstream errors",
-		headline.Report.CVEsTested(), headline.Report.TotalRequests, strings.ToUpper(headline.Name),
+	// Short enough not to wrap: the level is already in the title, and "rejected by the
+	// server" said in full pushed this onto a second line in a normal-width channel.
+	context := fmt.Sprintf("%d CVEs  ·  %d requests  ·  %d rejected  ·  %d upstream errors",
+		headline.Report.CVEsTested(), headline.Report.TotalRequests,
 		headline.Report.TotalRejected, headline.Report.TotalErrored)
 	if runURL != "" {
 		context += fmt.Sprintf("  ·  <%s|view the run>", runURL)
 	}
+
+	title := fmt.Sprintf("\U0001F6E1 %s", strings.TrimPrefix(text, "WAF test: "))
+	counts := fmt.Sprintf("*%d* blocked  ·  *%d* not blocked\n*%d* partially blocked  ·  *%d* not exercised",
+		len(headline.Report.CVEsBlocked), len(headline.Report.CVEsNotBlocked),
+		len(headline.Report.CVEsPartially), len(headline.Report.CVEsNotExercised))
 
 	return map[string]any{
 		"text": text,
@@ -61,18 +88,17 @@ func SweepPayload(levels []Level, runURL string) map[string]any {
 			"blocks": []any{
 				map[string]any{
 					"type": "header",
-					"text": map[string]any{"type": "plain_text", "text": text, "emoji": true},
+					// The notification text says the same thing in a sentence; this is the
+					// title, so it leads with the number rather than with "WAF test".
+					"text": map[string]any{"type": "plain_text", "text": title, "emoji": true},
 				},
 				map[string]any{
 					"type": "section",
-					"text": map[string]any{"type": "mrkdwn", "text": "```\n" + SweepTable(levels) + "```"},
+					"text": map[string]any{"type": "mrkdwn", "text": sweepBars(levels)},
 				},
 				map[string]any{
 					"type": "section",
-					"fields": []any{
-						slackField("Partially blocked", len(headline.Report.CVEsPartially)),
-						slackField("Not exercised", len(headline.Report.CVEsNotExercised)),
-					},
+					"text": map[string]any{"type": "mrkdwn", "text": counts},
 				},
 				map[string]any{
 					"type":     "context",
