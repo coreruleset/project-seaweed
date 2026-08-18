@@ -59,6 +59,7 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(newDiffCommand())
 	rootCmd.AddCommand(newSweepCommand())
 	rootCmd.AddCommand(newFalsePositivesCommand())
+	rootCmd.AddCommand(newRulesCommand())
 
 	return rootCmd
 }
