@@ -5,12 +5,32 @@ package benign
 import (
 	"fmt"
 	"io/fs"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+// fallbackHost stands in when the replay target is an IP address. The corpus supplies its
+// own Host for all but a handful of stages, and uses a name when it does.
+const fallbackHost = "localhost"
+
+// hostHeader is the Host to send for a stage that carries none. A numeric address trips
+// 920350 for +3 on traffic that is supposed to be benign, which is enough on its own to
+// carry a stage over the blocking threshold, so an address is replaced by a name.
+func hostHeader(target string) string {
+	address := target
+	if host, _, err := net.SplitHostPort(target); err == nil {
+		address = host
+	}
+	if net.ParseIP(address) != nil {
+		return fallbackHost
+	}
+
+	return target
+}
 
 // MarkerHeader carries a per-request id so a replayed request can be found again in the
 // audit log. Nothing else in this project can join a request to its ModSecurity record;
@@ -136,7 +156,7 @@ func (r Request) Bytes(host string) []byte {
 	var out strings.Builder
 	fmt.Fprintf(&out, "%s %s %s\r\n", r.Method, r.URI, r.Version)
 
-	var hasHost, hasLength, hasType bool
+	var hasHost, hasLength, hasType, hasAccept bool
 	for _, header := range r.Headers {
 		switch strings.ToLower(header.Name) {
 		case "host":
@@ -145,11 +165,19 @@ func (r Request) Bytes(host string) []byte {
 			hasLength = true
 		case "content-type":
 			hasType = true
+		case "accept":
+			hasAccept = true
 		}
 		fmt.Fprintf(&out, "%s: %s\r\n", header.Name, header.Value)
 	}
 	if !hasHost {
-		fmt.Fprintf(&out, "Host: %s\r\n", host)
+		fmt.Fprintf(&out, "Host: %s\r\n", hostHeader(host))
+	}
+	if !hasAccept {
+		// 920300 scores a missing Accept header at PL3 and above. No browser omits it, so a
+		// stage that does is measuring the fixture rather than the ruleset: 18 of the 538
+		// benign requests blocked at PL4 were blocked for this alone, and 11 of 368 at PL3.
+		out.WriteString("Accept: */*\r\n")
 	}
 	if r.Data != "" && !hasLength {
 		fmt.Fprintf(&out, "Content-Length: %d\r\n", len(r.Data))

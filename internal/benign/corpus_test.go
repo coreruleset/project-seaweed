@@ -49,3 +49,28 @@ func TestBytesSuppliesAHostWhenTheTestOmitsOne(t *testing.T) {
 
 	assert.Contains(t, string(request.Bytes("waf:8080")), "Host: waf:8080")
 }
+
+// 920350 scores a numeric Host at PL1 and 920300 a missing Accept at PL3. Both land on
+// traffic the false-positive pass is asserting is benign, and either is enough to carry a
+// stage over the blocking threshold on its own.
+func TestBytesFillsInHeadersThatWouldScoreAgainstBenignTraffic(t *testing.T) {
+	bare := Request{Method: "GET", URI: "/", Version: "HTTP/1.1"}
+
+	raw := string(bare.Bytes("127.0.0.1:8080"))
+	assert.Contains(t, raw, "Host: localhost\r\n", "a numeric target must not become a numeric Host")
+	assert.NotContains(t, raw, "127.0.0.1", "the dial address must not leak into the request")
+	assert.Contains(t, raw, "Accept: */*\r\n")
+
+	named := string(bare.Bytes("crs:8080"))
+	assert.Contains(t, named, "Host: crs:8080\r\n", "a named target is kept as sent")
+
+	// A stage that sets these keeps them: the corpus decides, not us.
+	own := Request{Method: "GET", URI: "/", Version: "HTTP/1.1", Headers: []Header{
+		{Name: "Host", Value: "example.com"}, {Name: "Accept", Value: "text/html"},
+	}}
+	kept := string(own.Bytes("127.0.0.1:8080"))
+	assert.Contains(t, kept, "Host: example.com\r\n")
+	assert.Contains(t, kept, "Accept: text/html\r\n")
+	assert.NotContains(t, kept, "Accept: */*")
+	assert.Equal(t, 1, strings.Count(kept, "Host:"), "exactly one Host header")
+}
