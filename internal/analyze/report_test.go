@@ -280,3 +280,29 @@ func TestWithoutTemplatesEverythingUnsentStaysUnexercised(t *testing.T) {
 	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised)
 	assert.Empty(t, report.CVEsNotBlocked)
 }
+
+// 60 CVEs in one run send nothing but a fetch of a plugin's readme, which is how the
+// template decides whether to attack at all. Reporting those as "not blocked" says the WAF
+// failed to stop an attack that was never sent.
+func TestMetadataProbesAreNotAVerdict(t *testing.T) {
+	probeOnly := reader.NucleiTraceOutput{
+		CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1, MetadataProbes: 1,
+	}
+	report := BuildReport([]reader.NucleiTraceOutput{probeOnly}, map[string]bool{})
+	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised, "a readme fetch tests nothing")
+	assert.Empty(t, report.CVEsNotBlocked)
+
+	// Even ungated, where ADR 9 otherwise reads a short trace as the whole attack.
+	report = BuildReport([]reader.NucleiTraceOutput{probeOnly}, map[string]bool{"CVE-1": false})
+	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised)
+
+	// But a WAF that refuses the enumeration has answered, and that must survive -- including
+	// for a gated template, where the gated branch below would otherwise swallow it.
+	blocked := probeOnly
+	blocked.NotBlockedRequests, blocked.BlockedRequests = 0, 1
+	for _, gated := range []map[string]bool{{}, {"CVE-1": true}, nil} {
+		report = BuildReport([]reader.NucleiTraceOutput{blocked}, gated)
+		assert.Equal(t, []string{"CVE-1"}, report.CVEsBlocked, "gated=%v", gated)
+		assert.Empty(t, report.CVEsNotExercised, "gated=%v", gated)
+	}
+}

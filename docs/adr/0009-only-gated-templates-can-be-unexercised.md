@@ -38,6 +38,32 @@ nothing but a bare `GET /`.
 > this reclaims 5 CVEs at PL4 (47 unexercised → 42), 3 of them blocks the report was
 > discarding, and 4 at PL1 (43 → 39).
 
+> **Amended 2026-08-20.** A bare `GET /` is not the only request that tests nothing. The most
+> common single request in a run is `GET /wp-content/plugins/<slug>/readme.txt`: 58 of the 60
+> templates that stop there extract a version from the readme and run it through
+> `compare_versions`, and 43 of them gate a payload behind that comparison which never fires
+> against a mock backend. Fetching a file that describes the application is reconnaissance,
+> so a trace of nothing but those is not exercised either — whether or not the template
+> declares a `flow`, because an ungated one sent everything it has and everything it has is a
+> file fetch.
+>
+> The list is deliberately five entries (`readme.txt`, `readme.md`, `changelog.txt`,
+> `changelog.md`, `license.txt`) and every one has to be a file a browser never requests while
+> rendering a page. That excludes `wp-content/themes/<name>/style.css`, which five templates
+> also fingerprint through and which is the theme stylesheet on every page view. A request
+> carrying a query string, an encoded character or a traversal sequence is not treated as a
+> probe, since the path is then doing more than naming the file.
+>
+> One exception, which cost a bug before the tests caught it: a WAF that *refuses* the
+> enumeration has answered, and that answer has to survive. A blocked probe stays a block
+> rather than falling through to the gated reading, which would have discarded 5 of them at
+> PL4.
+>
+> Measured on run 32184771851, 56 CVEs move out of `cves_not_blocked` at PL4 and 57 at PL1.
+> `cves_blocked` does not change at any level. The block rate rises about a point — PL1
+> 41.4% → 42.0%, PL4 60.1% → 61.0% — because the denominator loses CVEs that were never
+> tested, not because anything new was blocked.
+
 `seaweed` reads the templates to know which ids are gated, defaulting to
 `nuclei-templates/` where `scripts/fetch-templates.sh` puts them, overridable with
 `--templates`. When they cannot be read it logs and keeps the old pessimistic reading,

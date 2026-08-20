@@ -105,6 +105,15 @@ func exercised(result reader.NucleiTraceOutput, gated map[string]bool) bool {
 		return true
 	}
 
+	// A trace of nothing but metadata fetches asked the WAF about a plugin's readme, not
+	// about the CVE. That holds whether or not the template declares a gate: an ungated one
+	// sent everything it has, and everything it has is a file fetch. The exception is a WAF
+	// that answered anyway -- refusing version enumeration is a real answer, and hiding it
+	// here would lose it.
+	if result.MetadataProbes > 0 {
+		return result.BlockedRequests > 0
+	}
+
 	// Only a gated template can stop early. Without the templates to check against, keep
 	// the pessimistic reading rather than quietly reclassifying.
 	return gated != nil && !gated[result.CVENumber]
