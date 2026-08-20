@@ -60,7 +60,7 @@ func TestBuildReportPutsEachCVEInExactlyOneBucket(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			report := BuildReport([]reader.NucleiTraceOutput{tt.result}, nil)
+			report := BuildReport([]reader.NucleiTraceOutput{tt.result}, nil, nil)
 
 			assert.Equal(t, tt.blocked, report.CVEsBlocked)
 			assert.Equal(t, tt.partial, report.CVEsPartially)
@@ -75,7 +75,7 @@ func TestBuildReportSumsRequestCounters(t *testing.T) {
 	report := BuildReport([]reader.NucleiTraceOutput{
 		{CVENumber: "CVE-1", TotalRequests: 2, BlockedRequests: 2},
 		{CVENumber: "CVE-2", TotalRequests: 3, BlockedRequests: 1, NotBlockedRequests: 1, ErroredRequests: 1},
-	}, nil)
+	}, nil, nil)
 
 	assert.Equal(t, uint(5), report.TotalRequests)
 	assert.Equal(t, uint(3), report.TotalBlocked)
@@ -221,7 +221,7 @@ func TestBuildReportSeparatesUnexercisedCVEs(t *testing.T) {
 		// Detection step answered 200 and the template stopped there.
 		{CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1, Exercised: false},
 		{CVENumber: "CVE-2", TotalRequests: 1, NotBlockedRequests: 1, Exercised: true},
-	}, nil)
+	}, nil, nil)
 
 	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised)
 	assert.Equal(t, []string{"CVE-2"}, report.CVEsNotBlocked)
@@ -234,7 +234,7 @@ func TestBuildReportSeparatesUnexercisedCVEs(t *testing.T) {
 	blocked := BuildReport([]reader.NucleiTraceOutput{
 		{CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1, Exercised: false},
 		{CVENumber: "CVE-2", TotalRequests: 1, BlockedRequests: 1, Exercised: true},
-	}, nil)
+	}, nil, nil)
 	rate, ok = blocked.BlockRate()
 	require.True(t, ok)
 	assert.InDelta(t, 1.0, rate, 0.0001, "one tested CVE, blocked, is a 100% block rate")
@@ -243,7 +243,7 @@ func TestBuildReportSeparatesUnexercisedCVEs(t *testing.T) {
 func TestBuildReportCountsRejectedRequests(t *testing.T) {
 	report := BuildReport([]reader.NucleiTraceOutput{
 		{CVENumber: "CVE-1", TotalRequests: 2, BlockedRequests: 1, RejectedRequests: 1, Exercised: true},
-	}, nil)
+	}, nil, nil)
 
 	assert.Equal(t, uint(1), report.TotalRejected)
 	// Rejected requests are not verdicts, so the CVE is fully blocked, not partial.
@@ -261,7 +261,7 @@ func TestOnlyGatedTemplatesCanBeUnexercised(t *testing.T) {
 	}
 	gated := map[string]bool{"CVE-gated": true}
 
-	report := BuildReport(results, gated)
+	report := BuildReport(results, gated, nil)
 
 	assert.Equal(t, []string{"CVE-gated"}, report.CVEsNotExercised)
 	assert.Equal(t, []string{"CVE-plain"}, report.CVEsNotBlocked)
@@ -275,7 +275,7 @@ func TestWithoutTemplatesEverythingUnsentStaysUnexercised(t *testing.T) {
 		{CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1},
 	}
 
-	report := BuildReport(results, nil)
+	report := BuildReport(results, nil, nil)
 
 	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised)
 	assert.Empty(t, report.CVEsNotBlocked)
@@ -288,12 +288,12 @@ func TestMetadataProbesAreNotAVerdict(t *testing.T) {
 	probeOnly := reader.NucleiTraceOutput{
 		CVENumber: "CVE-1", TotalRequests: 1, NotBlockedRequests: 1, MetadataProbes: 1,
 	}
-	report := BuildReport([]reader.NucleiTraceOutput{probeOnly}, map[string]bool{})
+	report := BuildReport([]reader.NucleiTraceOutput{probeOnly}, map[string]bool{}, nil)
 	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised, "a readme fetch tests nothing")
 	assert.Empty(t, report.CVEsNotBlocked)
 
 	// Even ungated, where ADR 9 otherwise reads a short trace as the whole attack.
-	report = BuildReport([]reader.NucleiTraceOutput{probeOnly}, map[string]bool{"CVE-1": false})
+	report = BuildReport([]reader.NucleiTraceOutput{probeOnly}, map[string]bool{"CVE-1": false}, nil)
 	assert.Equal(t, []string{"CVE-1"}, report.CVEsNotExercised)
 
 	// But a WAF that refuses the enumeration has answered, and that must survive -- including
@@ -301,8 +301,48 @@ func TestMetadataProbesAreNotAVerdict(t *testing.T) {
 	blocked := probeOnly
 	blocked.NotBlockedRequests, blocked.BlockedRequests = 0, 1
 	for _, gated := range []map[string]bool{{}, {"CVE-1": true}, nil} {
-		report = BuildReport([]reader.NucleiTraceOutput{blocked}, gated)
+		report = BuildReport([]reader.NucleiTraceOutput{blocked}, gated, nil)
 		assert.Equal(t, []string{"CVE-1"}, report.CVEsBlocked, "gated=%v", gated)
 		assert.Empty(t, report.CVEsNotExercised, "gated=%v", gated)
 	}
+}
+
+// Access-control CVEs are counted in the ordinary buckets and again on their own, so the
+// headline rate stays honest and a reader can see how much of it CRS could ever act on.
+func TestAccessControlIsCountedSeparatelyWithoutLeavingTheBuckets(t *testing.T) {
+	results := []reader.NucleiTraceOutput{
+		{CVENumber: "CVE-authz", TotalRequests: 1, NotBlockedRequests: 1, Exercised: true},
+		{CVENumber: "CVE-sqli", TotalRequests: 1, NotBlockedRequests: 1, Exercised: true},
+		{CVENumber: "CVE-blocked-authz", TotalRequests: 1, BlockedRequests: 1, Exercised: true},
+	}
+	cwes := map[string][]string{
+		"CVE-authz":         {"CWE-862"},
+		"CVE-sqli":          {"CWE-89"},
+		"CVE-blocked-authz": {"CWE-287"},
+	}
+
+	report := BuildReport(results, map[string]bool{}, cwes)
+
+	assert.ElementsMatch(t, []string{"CVE-authz", "CVE-sqli"}, report.CVEsNotBlocked,
+		"an access-control CVE stays in the bucket it earned")
+	assert.Equal(t, 2, report.AccessControlTested())
+	assert.Equal(t, 1, report.AccessControlNotBlocked)
+	assert.Equal(t, 1, report.AccessControlBlocked)
+
+	overall, ok := report.BlockRate()
+	require.True(t, ok)
+	assert.InDelta(t, 1.0/3.0, overall, 0.001, "1 of 3 blocked")
+
+	addressable, ok := report.BlockRateAddressable()
+	require.True(t, ok)
+	assert.InDelta(t, 0.0, addressable, 0.001, "the only addressable CVE was not blocked")
+}
+
+// A template naming several CWEs writes them as one comma-separated scalar, and one
+// access-control entry among them is enough.
+func TestAccessControlAcceptsAnyOfSeveralCWEs(t *testing.T) {
+	assert.True(t, isAccessControl([]string{"CWE-121", "CWE-287"}))
+	assert.False(t, isAccessControl([]string{"CWE-121", "CWE-787"}))
+	assert.False(t, isAccessControl(nil), "no classification is not an access-control class")
+	assert.False(t, isAccessControl([]string{"CWE-200"}), "exposure is a mixed class, not a blind one")
 }

@@ -77,6 +77,12 @@ func runE(cmd *cobra.Command, _ []string) error {
 		log.Printf("not cross-referencing templates: %v", err)
 		gated = nil
 	}
+	cwes, err := templates.CWEs(templatesPath)
+	if err != nil {
+		// The access-control figures are then absent rather than wrong.
+		log.Printf("not reading CWE classifications: %v", err)
+		cwes = nil
+	}
 
-	return analyze.ReportNucleiBlocks(path, format, runURL, gated)
+	return analyze.ReportNucleiBlocks(path, format, runURL, gated, cwes)
 }
