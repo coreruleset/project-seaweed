@@ -9,6 +9,10 @@ package reader
 //
 // Exercised is false when the template never sent anything but a bare `GET /`, which
 // means its payload step never ran and the WAF was never asked about this CVE at all.
+//
+// MetadataProbes counts requests that only fetched a file describing the application, such
+// as a plugin's readme. They are how a template decides whether a target is worth attacking,
+// so a trace of nothing but these did not test the WAF either.
 type NucleiTraceOutput struct {
 	CVENumber          string
 	TotalRequests      uint
@@ -16,5 +20,6 @@ type NucleiTraceOutput struct {
 	NotBlockedRequests uint
 	ErroredRequests    uint
 	RejectedRequests   uint
+	MetadataProbes     uint
 	Exercised          bool
 }

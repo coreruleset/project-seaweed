@@ -41,6 +41,32 @@ var upstreamErrorStatuses = map[int]bool{
 	http.StatusGatewayTimeout:      true,
 }
 
+// metadataFiles hold facts about the application rather than any of its data: a version
+// number, a changelog, a licence. Nuclei templates fetch them to decide whether a target is
+// worth attacking -- 58 of the 60 that stop here extract a version and run it through
+// compare_versions -- so a trace made only of these asked the WAF nothing.
+//
+// Deliberately short. Every entry has to be a file a browser never requests while rendering
+// a page, which rules out the theme stylesheet a plugin's readme sits next to.
+var metadataFiles = map[string]bool{
+	"readme.txt":    true,
+	"readme.md":     true,
+	"changelog.txt": true,
+	"changelog.md":  true,
+	"license.txt":   true,
+}
+
+// isMetadataProbe reports whether a request only asks for one of those files. A query
+// string, an encoded character or a traversal sequence means the path is carrying something
+// besides the filename, so it is left alone.
+func isMetadataProbe(method, path string) bool {
+	if !probeMethods[method] || strings.ContainsAny(path, "?%") || strings.Contains(path, "..") {
+		return false
+	}
+
+	return metadataFiles[strings.ToLower(path[strings.LastIndex(path, "/")+1:])]
+}
+
 // probeMethods carry nothing a WAF could object to. Any other method aimed at the root
 // path is a template sending something, which is the distinction the path alone misses.
 var probeMethods = map[string]bool{
@@ -86,6 +112,7 @@ func ParseNucleiOutputDirectory(path string) ([]NucleiTraceOutput, error) {
 			merged.NotBlockedRequests += trace.NotBlockedRequests
 			merged.ErroredRequests += trace.ErroredRequests
 			merged.RejectedRequests += trace.RejectedRequests
+			merged.MetadataProbes += trace.MetadataProbes
 			merged.Exercised = merged.Exercised || trace.Exercised
 		} else {
 			byCVE[trace.CVENumber] = &trace
@@ -165,7 +192,10 @@ func (s *traceScanner) line(text string) {
 	// being blocks.
 	if request := requestPattern.FindStringSubmatch(text); request != nil {
 		s.settle()
-		if !probeMethods[request[1]] || request[2] != "/" {
+		switch {
+		case isMetadataProbe(request[1], request[2]):
+			s.trace.MetadataProbes++
+		case !probeMethods[request[1]] || request[2] != "/":
 			s.trace.Exercised = true
 		}
 

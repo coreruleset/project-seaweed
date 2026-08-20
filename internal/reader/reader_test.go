@@ -187,6 +187,29 @@ func TestExercisedTracksWhetherAPayloadWasSent(t *testing.T) {
 			want:  true,
 		},
 		{
+			// The most common request in the whole miss set. The template reads
+			// "Stable tag:" out of the readme and never sends anything else.
+			name:  "a plugin readme fetch",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET /wp-content/plugins/x/readme.txt HTTP/1.1\n",
+		},
+		{
+			name: "a readme fetch followed by a payload",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET /wp-content/plugins/x/readme.txt HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET /wp-content/plugins/x/x.php?a=1 HTTP/1.1\n",
+			want: true,
+		},
+		{
+			// A metadata filename reached through traversal is not a metadata fetch.
+			name:  "a readme reached by traversal",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET /x/../../readme.txt HTTP/1.1\n",
+			want:  true,
+		},
+		{
+			name:  "the theme stylesheet is not on the list",
+			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET /wp-content/themes/x/style.css HTTP/1.1\n",
+			want:  true,
+		},
+		{
 			name: "root probe first, payload second",
 			trace: "[CVE-1111-1] Dumped HTTP request for http://crs:8080\nGET / HTTP/1.1\n" +
 				"[CVE-1111-1] Dumped HTTP request for http://crs:8080/x\nPOST /upload.php HTTP/1.1\n",
