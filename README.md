@@ -1,8 +1,6 @@
-# Project Seaweed
+# <img src="images/seaweed.png" width="42" alt="" align="top"> Project Seaweed
 
-<img src="images/seaweed.png" width="100px" alt="Seaweed">
-
-image: Flaticon.com
+<sub>Seaweed icon by <a href="https://www.flaticon.com/">Flaticon</a>.</sub>
 
 [![Run Nuclei](https://github.com/coreruleset/project-seaweed/actions/workflows/scheduled_job.yaml/badge.svg)](https://github.com/coreruleset/project-seaweed/actions/workflows/scheduled_job.yaml)
 
@@ -18,17 +16,21 @@ small summary notification in the form of a slack message.
 
 ```mermaid
 flowchart TD
-    A[Weekly schedule or manual dispatch] --> B[docker compose up]
-    B --> C{Does a marker round-trip through the WAF?}
-    C -->|no| X[Run fails]
-    C -->|yes| D[Nuclei sends CVE payloads at CRS]
-    D --> E[Trace files uploaded as a workflow artifact]
-    E --> F[seaweed -o output]
-    F --> G{More than 10% upstream errors?}
-    G -->|yes| X
-    G -->|no| H[Per-CVE report]
-    H --> I[Slack summary]
-    X --> J[Slack failure alert]
+    A[Weekly schedule or manual dispatch] --> B[Fetch pinned templates, build the mock page]
+    B --> C[For each paranoia level 1 to 4]
+    C --> D{Does a marker round-trip through the WAF?}
+    D -->|no| X[Run fails]
+    D -->|yes| E[Replay the CRS regression suite: benign traffic]
+    E --> F[Nuclei sends every CVE payload at CRS]
+    F --> G[Traces and WAF logs uploaded as artifacts]
+    G --> C
+    C --> H[seaweed -o output/pl4]
+    H --> I{More than 10% upstream errors?}
+    I -->|yes| X
+    I -->|no| J[Per-CVE report, paranoia curve, false positives, rules]
+    J --> K[Diff against the previous run]
+    K --> L[Slack summary]
+    X --> M[Slack failure alert]
 ```
 
 ## Features
@@ -112,11 +114,23 @@ Every CVE ends up in exactly one bucket:
 
 | bucket | meaning |
 | --- | --- |
-| blocked | every request the WAF judged, it blocked |
-| partially blocked | only some stages of a multi-stage attack were stopped |
+| blocked | every payload the template sent was refused |
+| partially blocked | a payload reached the backend while another was refused |
 | not blocked | the payload reached the backend |
-| not exercised | a flow-gated template never sent anything but a bare `GET /`, so its payload step never ran and the WAF was never asked |
+| not exercised | the template never sent an attack, so the WAF was never asked |
 | no verdict | none of its requests reached the backend or got an answer from it |
+
+"Blocked" is deliberately wider than "every request came back 403". A template that reads a
+plugin's version before attacking, or that checks afterwards for the file its blocked upload
+would have written, gets a `200` for a request that carried no attack — 413 CVEs in one run
+were filed as *partially* blocked on the strength of exactly that. What counts is whether
+anything the template actually threw got through
+([ADR 19](docs/adr/0019-every-payload-blocked-is-a-block.md)).
+
+Three cases are held back from that reading, because for them a plain request can be the whole
+attack: a class like missing authorization or information exposure, a WAF that refused only the
+template's own login step, and any path carrying a traversal sequence, an encoded character or
+a system filename.
 
 Only three of those describe the WAF. A request can also be:
 
@@ -133,26 +147,42 @@ redirect always counts as delivered, marker or not.
 
 Neither is a verdict, so neither counts for or against the WAF, and neither is in the block rate.
 
-Only a **flow-gated** template can be "not exercised". One without a gate sends everything it has, so a trace holding
-only a bare `GET /` means that was the whole attack. `seaweed` reads `nuclei-templates/` to tell the two apart; point
-`--templates` elsewhere, or run without them and every unsent CVE keeps the pessimistic reading.
+"Not exercised" covers two shapes. A **flow-gated** template can stop at its detection step; one without a gate sends
+everything it has, so a trace holding only a bare `GET /` means that was the whole attack, and `seaweed` reads
+`nuclei-templates/` to tell the two apart. The second shape is a template whose whole trace is a fetch of a file
+describing the application — `GET /wp-content/plugins/<slug>/readme.txt` is the single most common request in a run,
+and 58 of the 60 templates that stop there read a version and run it through `compare_versions`. Nothing malicious is
+sent, so there is nothing for a WAF to have missed ([ADR 9](docs/adr/0009-only-gated-templates-can-be-unexercised.md)).
+
+Point `--templates` elsewhere, or run without them, and every unsent CVE keeps the pessimistic reading.
 
 The `github` format writes `key=value` pairs meant for `$GITHUB_OUTPUT`:
 
 ```
-❯ ./project-seaweed -o output
-total_requests=3775
-total_blocked=2388
-total_not_blocked=1249
-total_errored=2
-total_rejected=136
-cves_tested=2710
-cves_blocked=1588
-cves_partially_blocked=295
-cves_not_blocked=533
-cves_no_verdict=100
-cves_not_exercised=194
+❯ ./project-seaweed -o output/pl4
+total_requests=6457
+total_blocked=3897
+total_not_blocked=2467
+total_errored=3
+total_rejected=90
+cves_tested=4122
+cves_blocked=2772
+cves_partially_blocked=225
+cves_not_blocked=952
+cves_no_verdict=64
+cves_not_exercised=109
+cves_access_control=390
+block_rate_addressable=74.5
 ```
+
+The last two are a second view of the same CVEs rather than a sixth bucket. `CWE-862` and its
+neighbours — missing authorization, missing authentication, improper access control — describe
+attacks where the malicious request is, byte for byte, one a legitimate user could send. Whether
+it is an attack depends on who sent it, which the application knows and a WAF does not. They stay
+in the counts, and `block_rate_addressable` is the rate with them removed from both halves of the
+fraction, so the headline does not carry a question no ruleset can answer. CRS blocks 121 of the
+390 anyway, which is why they are not simply dropped
+([ADR 18](docs/adr/0018-count-access-control-cves-separately.md)).
 
 The `json` format writes the same counters plus the CVE ids in each bucket:
 
@@ -176,10 +206,10 @@ run. `seaweed sweep output` reads each level's directory and reports them togeth
 
 ```
 ❯ ./project-seaweed sweep output
-PL1   54%  ███████████░░░░░░░░░   1375 blocked    807 not blocked
-PL2   58%  ████████████░░░░░░░░   1467 blocked    713 not blocked
-PL3   60%  ████████████░░░░░░░░   1506 blocked    664 not blocked
-PL4   64%  █████████████░░░░░░░   1622 blocked    550 not blocked
+PL1   50%  ██████████░░░░░░░░░░   1966 blocked   1622 not blocked
+PL2   57%  ███████████░░░░░░░░░   2265 blocked   1317 not blocked
+PL3   65%  █████████████░░░░░░░   2565 blocked   1146 not blocked
+PL4   70%  ██████████████░░░░░░   2772 blocked    952 not blocked
 ```
 
 That table goes to both the job summary and the Slack message. Paranoia 4 stays the headline number and drives the
@@ -189,6 +219,12 @@ its traces somewhere of their own.
 Templates attacking an authenticated endpoint interpolate `{{username}}` and friends. `docker-compose.yml` supplies
 them with `-var`; without them nuclei refuses to send the request and the CVE is reported as never exercised. The
 values are irrelevant — the mock accepts anything, and what is measured is whether the WAF stops the payload.
+
+The same file pins the User-Agent with `-H`. Left alone nuclei rotates one per request — 902 distinct values in a
+single run — and CRS answers some of them differently: rule 932237 scores 5 on its own, the threshold, for a browser
+string containing `ss` or a Spanish or Dutch locale tag. That invented blocks the ruleset never earned and made two
+identical runs disagree on 48 CVEs. Pinned, they disagree on 2
+([ADR 20](docs/adr/0020-pin-the-user-agent.md)).
 
 **The curve only shows one side.** More blocking at a higher paranoia level costs false positives. `seaweed
 false-positives` measures those against CRS's own regression suite:
@@ -204,10 +240,13 @@ half of that split.
 
 It replays every stage of the suite that asserts a rule must *not* fire, then checks the audit log for whether one did.
 
+The benign replay marks each request with an `X-Seaweed-Case` header, so joining a stage to its audit entry is exact.
+It also fills in a `Host` and an `Accept` header when a stage carries none: a numeric `Host` trips 920350 and a missing
+`Accept` trips 920300, and either is enough to carry a request the suite calls benign over the blocking threshold.
+
 `seaweed rules logs/pl4/modsec_audit.json` reads the same log from the other direction: which rules contributed to
 blocks, and which attack rules fired without managing one. A transaction is blocked when 949110 fired, so this needs no
 join with the trace files. Contribution rather than cause, because CRS blocks on an accumulated score.
-Each request carries an `X-Seaweed-Case` header so the join to the log is exact.
 
 Blocking is reported separately and is deliberately **not** the measurement: many of those stages carry real attack
 payloads and assert only that a neighbouring rule stays quiet, so CRS is right to block them.
@@ -227,17 +266,24 @@ highest paranoia level — the share of CVEs the WAF blocked outright, out of th
 the whole curve:
 
 ```
-WAF test: 64% of CVEs blocked at PL4
+🛡 70% of CVEs blocked at PL4
 
-PL1   52%  ██████████░░░░░░░░░░   1319 blocked    851 not blocked
-PL2   58%  ████████████░░░░░░░░   1460 blocked    707 not blocked
-PL3   59%  ████████████░░░░░░░░   1500 blocked    661 not blocked
-PL4   64%  █████████████░░░░░░░   1614 blocked    555 not blocked
+PL1  🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜  50%
+PL2  🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜  57%
+PL3  🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜  65%
+PL4  🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜  70%
 
-Partially blocked  360      Not exercised  80
+2772 blocked · 952 not blocked
+225 partially blocked · 109 not exercised
+390 access-control · 74% blocked excluding them
 
-2710 CVEs seen · 3863 requests at PL4 · 135 rejected by the server · 2 upstream errors · view the run
+4122 CVEs · 6457 requests · 90 rejected · 3 upstream errors · view the run
 ```
+
+Colour rather than a code block because Slack renders emoji as emoji inside one too, which
+destroys the alignment a code block is for. Fifteen cells rather than ten: a real curve gains
+about six points a level, so ten rounds neighbouring levels onto the same bar
+([ADR 12](docs/adr/0012-put-the-paranoia-curve-in-the-notification.md)).
 
 The layout is built by `seaweed -f slack`, so it is covered by tests rather than assembled from workflow expressions.
 
@@ -274,14 +320,17 @@ You need go installed on your system to build the project.
 
 `go build`
 
-4. **Fetch the pinned templates**
+4. **Fetch the pinned templates and build the mock backend page**
 
 ```
 ./scripts/fetch-templates.sh
+go run . gen-mock
 ```
 
-This downloads the pinned version into `nuclei-templates/`, which both the scan and `gen-mock` read. The
-directory is managed by the script and replaced wholesale.
+The first downloads the pinned version into `nuclei-templates/`, which both the scan and `gen-mock` read; the directory
+is managed by the script and replaced wholesale. The second writes `mock/fingerprints.html` from those templates. That
+page is generated rather than committed, so it cannot go stale — and if you skip this step the mock never reports
+healthy and nothing else starts.
 
 5. **Run the scan**
 
@@ -289,7 +338,16 @@ directory is managed by the script and replaced wholesale.
 docker compose up
 ```
 
-This starts the containers and runs the tests. Trace files land in `output/`. The WAF's own error and JSON audit logs
+This starts the containers and runs the tests. Trace files land in `output/`. `SEAWEED_PARANOIA` picks a single level,
+`SEAWEED_OUTPUT` sends the traces somewhere of their own, and `SEAWEED_TAGS` narrows the corpus — worth all three while
+iterating, since the full run is 4149 templates at four levels:
+
+```
+SEAWEED_PARANOIA=1 SEAWEED_OUTPUT=./scratch SEAWEED_TAGS=xss docker compose up
+```
+
+Never point a run at `./output` if it holds traces you want: filenames collide across runs and the second one
+overwrites the first. The WAF's own error and JSON audit logs
 — the latter carrying the CRS rule ids behind each block — stay inside the container, because that directory has to be
 writable by the user Apache runs as. Copy them out afterwards:
 
@@ -311,9 +369,11 @@ sudo chmod -R a+rX output
 ## Development
 
 ```
-go test ./...                 # unit tests
+go test -race ./...           # unit tests
+golangci-lint run             # linters
 ./scripts/fetch-templates.sh  # download the pinned Nuclei templates
-go run . gen-mock             # regenerate the mock backend page
+go run . gen-mock             # rebuild the mock backend page from them
+./scripts/fetch-crs-tests.sh  # download the CRS regression suite, for the benign pass
 ```
 
 Architecture decisions, and the measurements behind them, are recorded in [docs/adr](docs/adr).
