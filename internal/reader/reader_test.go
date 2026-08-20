@@ -27,7 +27,8 @@ func TestParseNucleiTraceOutput(t *testing.T) {
 			name: "a 403 means the WAF blocked it",
 			file: "blocked.txt",
 			want: NucleiTraceOutput{
-				CVENumber: "CVE-2009-1496", TotalRequests: 1, BlockedRequests: 1, Exercised: true,
+				CVENumber: "CVE-2009-1496", TotalRequests: 1, BlockedRequests: 1,
+				BlockedAttacks: 1, Exercised: true,
 			},
 		},
 		{
@@ -35,7 +36,9 @@ func TestParseNucleiTraceOutput(t *testing.T) {
 			file: "partial.txt",
 			want: NucleiTraceOutput{
 				CVENumber: "CVE-2023-34362", TotalRequests: 3, BlockedRequests: 1,
-				NotBlockedRequests: 1, RejectedRequests: 1, Exercised: true,
+				NotBlockedRequests: 1, RejectedRequests: 1,
+				// the 404 was a POST, so a payload the WAF did not refuse
+				UnblockedPayloads: 1, BlockedAttacks: 1, Exercised: true,
 			},
 		},
 		{
@@ -48,7 +51,9 @@ func TestParseNucleiTraceOutput(t *testing.T) {
 		{
 			name: "a clustered trace has no CVE to attribute requests to",
 			file: "cluster.txt",
-			want: NucleiTraceOutput{TotalRequests: 1, BlockedRequests: 1, Exercised: true},
+			want: NucleiTraceOutput{
+				TotalRequests: 1, BlockedRequests: 1, BlockedAttacks: 1, Exercised: true,
+			},
 		},
 	}
 
@@ -307,4 +312,74 @@ func TestDeliveryIsDecidedPerResponse(t *testing.T) {
 	assert.Equal(t, uint(2), got.TotalRequests)
 	assert.Equal(t, uint(1), got.NotBlockedRequests, "the 200 reached the backend")
 	assert.Equal(t, uint(1), got.RejectedRequests, "the 404 did not")
+}
+
+// The counters behind the reclassification: what the template threw, and what came back.
+func TestPayloadAccounting(t *testing.T) {
+	tests := []struct {
+		name              string
+		trace             string
+		unblockedPayloads uint
+		blockedAttacks    uint
+	}{
+		{
+			name: "recon passes, the attack is refused",
+			trace: "[CVE-1111-1] Dumped HTTP request\nGET /wp-content/plugins/x/ HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 200 OK\n" +
+				"[CVE-1111-1] Dumped HTTP request\nGET /shop/?id=1%27+OR+1=1 HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 403 Forbidden\n",
+			blockedAttacks: 1,
+		},
+		{
+			name: "the upload is refused, the check for its file passes",
+			trace: "[CVE-1111-1] Dumped HTTP request\nPOST /wp-admin/admin.php?page=x HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 403 Forbidden\n" +
+				"[CVE-1111-1] Dumped HTTP request\nGET /wp-content/uploads/x/shell.php HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 200 OK\n",
+			blockedAttacks: 1,
+		},
+		{
+			// No sensitive filename in it, so the traversal sequence is the only thing
+			// that makes this a payload rather than a plain fetch.
+			name: "a traversal path is a payload even with no query string",
+			trace: "[CVE-1111-1] Dumped HTTP request\nGET /x/../../config/db.yml HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 200 OK\n",
+			unblockedPayloads: 1,
+		},
+		{
+			name: "a path naming a system file is a payload with no traversal at all",
+			trace: "[CVE-1111-1] Dumped HTTP request\nGET /files/etc/passwd HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 200 OK\n",
+			unblockedPayloads: 1,
+		},
+		{
+			name: "a body makes a GET a payload",
+			trace: "[CVE-1111-1] Dumped HTTP request\nGET /x HTTP/1.1\nHost: crs:8080\n\n{\"a\":1}\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 200 OK\n",
+			unblockedPayloads: 1,
+		},
+		{
+			name: "refusing a plain sign-in is not refusing an attack",
+			trace: "[CVE-1111-1] Dumped HTTP request\nPOST /wp-login.php HTTP/1.1\nHost: crs:8080\n\nlog=a&pwd=b\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 403 Forbidden\n",
+		},
+		{
+			name: "an attack aimed at the sign-in page is an attack",
+			trace: "[CVE-1111-1] Dumped HTTP request\nGET /wp-login.php?e=<script> HTTP/1.1\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 403 Forbidden\n",
+			blockedAttacks: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "trace.txt")
+			require.NoError(t, os.WriteFile(file, []byte(tt.trace), 0o600))
+
+			got, err := parseNucleiTraceOutput(file)
+			require.NoError(t, err)
+			assert.Equal(t, tt.unblockedPayloads, got.UnblockedPayloads, "unblocked payloads")
+			assert.Equal(t, tt.blockedAttacks, got.BlockedAttacks, "blocked attacks")
+		})
+	}
 }

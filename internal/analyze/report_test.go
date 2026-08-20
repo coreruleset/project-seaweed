@@ -346,3 +346,52 @@ func TestAccessControlAcceptsAnyOfSeveralCWEs(t *testing.T) {
 	assert.False(t, isAccessControl(nil), "no classification is not an access-control class")
 	assert.False(t, isAccessControl([]string{"CWE-200"}), "exposure is a mixed class, not a blind one")
 }
+
+// "Partially blocked" asserts that some attack succeeded. For 413 CVEs in one run that was
+// not what happened: the WAF refused every payload, and what got through was a template
+// reading a version first, or checking afterwards for the file its blocked upload would have
+// written.
+func TestEverythingSentBlockedReadsAsBlocked(t *testing.T) {
+	reconThenBlocked := reader.NucleiTraceOutput{
+		CVENumber: "CVE-recon", TotalRequests: 2, BlockedRequests: 1, NotBlockedRequests: 1,
+		UnblockedPayloads: 0, BlockedAttacks: 1, Exercised: true,
+	}
+	payloadGotThrough := reader.NucleiTraceOutput{
+		CVENumber: "CVE-leaky", TotalRequests: 2, BlockedRequests: 1, NotBlockedRequests: 1,
+		UnblockedPayloads: 1, BlockedAttacks: 1, Exercised: true,
+	}
+	onlyLoginBlocked := reader.NucleiTraceOutput{
+		CVENumber: "CVE-login", TotalRequests: 2, BlockedRequests: 1, NotBlockedRequests: 1,
+		UnblockedPayloads: 0, BlockedAttacks: 0, Exercised: true,
+	}
+
+	report := BuildReport([]reader.NucleiTraceOutput{
+		reconThenBlocked, payloadGotThrough, onlyLoginBlocked,
+	}, map[string]bool{}, nil)
+
+	assert.Equal(t, []string{"CVE-recon"}, report.CVEsBlocked)
+	assert.ElementsMatch(t, []string{"CVE-leaky", "CVE-login"}, report.CVEsPartially,
+		"a payload that got through, and a WAF that only refused the sign-in, both stay partial")
+}
+
+// Where a plain request can be the whole attack, an unblocked one alongside a block is not
+// reconnaissance. CVE-2023-2734 blocks /?rest_route=/wp/v2/users and lets the bare
+// /wp-json/wp/v2/users through, and the bare one is the exploit.
+func TestBareExploitClassesStayPartial(t *testing.T) {
+	result := reader.NucleiTraceOutput{
+		CVENumber: "CVE-1", TotalRequests: 2, BlockedRequests: 1, NotBlockedRequests: 1,
+		UnblockedPayloads: 0, BlockedAttacks: 1, Exercised: true,
+	}
+
+	for _, cwe := range []string{"CWE-200", "CWE-862", "CWE-287", "CWE-548"} {
+		report := BuildReport([]reader.NucleiTraceOutput{result}, map[string]bool{},
+			map[string][]string{"CVE-1": {cwe}})
+		assert.Equal(t, []string{"CVE-1"}, report.CVEsPartially, "for %s", cwe)
+		assert.Empty(t, report.CVEsBlocked, "for %s", cwe)
+	}
+
+	// An injection class with the same shape does move.
+	report := BuildReport([]reader.NucleiTraceOutput{result}, map[string]bool{},
+		map[string][]string{"CVE-1": {"CWE-89"}})
+	assert.Equal(t, []string{"CVE-1"}, report.CVEsBlocked)
+}

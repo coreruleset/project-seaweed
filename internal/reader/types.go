@@ -21,5 +21,14 @@ type NucleiTraceOutput struct {
 	ErroredRequests    uint
 	RejectedRequests   uint
 	MetadataProbes     uint
-	Exercised          bool
+
+	// UnblockedPayloads counts requests that carried an attack and were not refused. Zero,
+	// alongside a block, means the WAF stopped everything the template actually threw at it.
+	//
+	// BlockedAttacks counts refusals of something other than a plain sign-in, so that a WAF
+	// which only refused the template's login step is not credited with stopping the exploit
+	// that login was leading up to.
+	UnblockedPayloads uint
+	BlockedAttacks    uint
+	Exercised         bool
 }
