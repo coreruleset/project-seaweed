@@ -251,9 +251,10 @@ stays silent.
 no longer does. The scheduled run does this automatically against the previous successful run and writes the result to
 the job summary.
 
-Read the totals before the names. Nuclei randomises the User-Agent per request and some templates randomise their
-payload, and neither can be turned off, so **about 48 CVEs change bucket between two identical runs**. A handful of
-individual CVEs moving is noise; a bucket total moving is not.
+Read the totals before the names. Some templates randomise their own payload, so a couple of CVEs change bucket
+between two identical runs — 2 in the last measurement. It used to be about 48, almost all of it nuclei rotating the
+User-Agent until that was pinned; CRS answers some browser strings differently from others. A handful of individual
+CVEs moving is noise; a bucket total moving is not.
 
 ## Usage
 
