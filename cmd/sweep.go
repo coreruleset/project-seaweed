@@ -40,8 +40,12 @@ func runSweep(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		gated = nil
 	}
+	cwes, err := templates.CWEs(templatesPath)
+	if err != nil {
+		cwes = nil
+	}
 
-	levels, err := readLevels(args[0], gated)
+	levels, err := readLevels(args[0], gated, cwes)
 	if err != nil {
 		return err
 	}
@@ -63,7 +67,7 @@ func runSweep(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func readLevels(root string, gated map[string]bool) ([]analyze.Level, error) {
+func readLevels(root string, gated map[string]bool, cwes map[string][]string) ([]analyze.Level, error) {
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", root, err)
@@ -81,7 +85,7 @@ func readLevels(root string, gated map[string]bool) ([]analyze.Level, error) {
 		if len(results) == 0 {
 			continue
 		}
-		levels = append(levels, analyze.Level{Name: entry.Name(), Report: analyze.BuildReport(results, gated)})
+		levels = append(levels, analyze.Level{Name: entry.Name(), Report: analyze.BuildReport(results, gated, cwes)})
 	}
 	sort.Slice(levels, func(i, j int) bool { return levels[i].Name < levels[j].Name })
 

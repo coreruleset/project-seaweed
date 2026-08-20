@@ -32,6 +32,45 @@ type GlobalReport struct {
 	CVEsNotBlocked   []string
 	CVEsNoVerdict    []string
 	CVEsNotExercised []string
+
+	// AccessControl* count the CVEs whose class is defined by *who* may make a request
+	// rather than by *what* the request carries. They are counted inside the buckets above
+	// as well: this is a second view of the same CVEs, not a sixth bucket.
+	AccessControlBlocked    int
+	AccessControlPartially  int
+	AccessControlNotBlocked int
+}
+
+// accessControlCWEs name vulnerability classes where the malicious request is, byte for
+// byte, one a legitimate user could send. Whether it is an attack depends on who sent it and
+// what they are entitled to, which is knowledge the application has and a WAF does not.
+//
+// Reporting these beside injection classes reads as the ruleset failing at something it is
+// not attempting: a generic rule that blocked them would have to guess at authorisation, and
+// guessing wrong denies real users. They stay in the counts, and BlockRateAddressable
+// reports the rate without them.
+//
+// CWE-200 (exposure of sensitive information) is deliberately absent. Some of it is
+// reachable -- CRS blocks a request for /.env or /.git/config through restricted-files.data
+// -- so it is a mixed class rather than a blind one.
+var accessControlCWEs = map[string]bool{
+	"CWE-862": true, // missing authorization
+	"CWE-863": true, // incorrect authorization
+	"CWE-306": true, // missing authentication for a critical function
+	"CWE-287": true, // improper authentication
+	"CWE-284": true, // improper access control
+	"CWE-639": true, // authorization bypass through a user-controlled key
+	"CWE-425": true, // direct request, or forced browsing
+}
+
+func isAccessControl(cwes []string) bool {
+	for _, cwe := range cwes {
+		if accessControlCWEs[cwe] {
+			return true
+		}
+	}
+
+	return false
 }
 
 const (
@@ -47,13 +86,13 @@ const (
 )
 
 // ReportNucleiBlocks reports how the WAF answered the payloads in the Nuclei output.
-func ReportNucleiBlocks(path string, format string, runURL string, gated map[string]bool) error {
+func ReportNucleiBlocks(path, format, runURL string, gated map[string]bool, cwes map[string][]string) error {
 	results, err := reader.ParseNucleiOutputDirectory(path)
 	if err != nil {
 		return err
 	}
 
-	report := BuildReport(results, gated)
+	report := BuildReport(results, gated, cwes)
 	if err := printReport(report, format, runURL); err != nil {
 		return err
 	}
@@ -67,7 +106,7 @@ func ReportNucleiBlocks(path string, format string, runURL string, gated map[str
 // gated names the CVEs whose template holds its payload behind a flow gate; pass nil when
 // the templates are not available. A template without a gate sends everything it has, so
 // a trace holding only a bare `GET /` means that was the whole attack.
-func BuildReport(results []reader.NucleiTraceOutput, gated map[string]bool) GlobalReport {
+func BuildReport(results []reader.NucleiTraceOutput, gated map[string]bool, cwes map[string][]string) GlobalReport {
 	var report GlobalReport
 
 	for _, result := range results {
@@ -89,10 +128,19 @@ func BuildReport(results []reader.NucleiTraceOutput, gated map[string]bool) Glob
 			report.CVEsNoVerdict = append(report.CVEsNoVerdict, result.CVENumber)
 		case result.BlockedRequests == verdicts:
 			report.CVEsBlocked = append(report.CVEsBlocked, result.CVENumber)
+			if isAccessControl(cwes[result.CVENumber]) {
+				report.AccessControlBlocked++
+			}
 		case result.BlockedRequests == 0:
 			report.CVEsNotBlocked = append(report.CVEsNotBlocked, result.CVENumber)
+			if isAccessControl(cwes[result.CVENumber]) {
+				report.AccessControlNotBlocked++
+			}
 		default:
 			report.CVEsPartially = append(report.CVEsPartially, result.CVENumber)
+			if isAccessControl(cwes[result.CVENumber]) {
+				report.AccessControlPartially++
+			}
 		}
 	}
 
@@ -152,6 +200,27 @@ func (r GlobalReport) BlockRate() (float64, bool) {
 	}
 
 	return float64(len(r.CVEsBlocked)) / float64(decided), true
+}
+
+// BlockRateAddressable is BlockRate over the CVEs a generic ruleset can act on at all, with
+// the access-control classes removed from both halves of the fraction. The gap between the
+// two says how much of the headline is a ruleset problem and how much is a question no
+// ruleset can answer.
+func (r GlobalReport) BlockRateAddressable() (float64, bool) {
+	blocked := len(r.CVEsBlocked) - r.AccessControlBlocked
+	decided := blocked +
+		(len(r.CVEsPartially) - r.AccessControlPartially) +
+		(len(r.CVEsNotBlocked) - r.AccessControlNotBlocked)
+	if decided <= 0 {
+		return 0, false
+	}
+
+	return float64(blocked) / float64(decided), true
+}
+
+// AccessControlTested is how many CVEs of that kind reached a verdict at all.
+func (r GlobalReport) AccessControlTested() int {
+	return r.AccessControlBlocked + r.AccessControlPartially + r.AccessControlNotBlocked
 }
 
 func bar(rate float64) string {
@@ -266,6 +335,10 @@ func printReport(report GlobalReport, format string, runURL string) error {
 	fmt.Printf("cves_not_blocked=%d\n", len(report.CVEsNotBlocked))
 	fmt.Printf("cves_no_verdict=%d\n", len(report.CVEsNoVerdict))
 	fmt.Printf("cves_not_exercised=%d\n", len(report.CVEsNotExercised))
+	fmt.Printf("cves_access_control=%d\n", report.AccessControlTested())
+	if rate, ok := report.BlockRateAddressable(); ok {
+		fmt.Printf("block_rate_addressable=%.1f\n", rate*100)
+	}
 
 	return nil
 }

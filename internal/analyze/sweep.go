@@ -80,6 +80,12 @@ func SweepPayload(levels []Level, runURL string) map[string]any {
 	counts := fmt.Sprintf("*%d* blocked  ·  *%d* not blocked\n*%d* partially blocked  ·  *%d* not exercised",
 		len(headline.Report.CVEsBlocked), len(headline.Report.CVEsNotBlocked),
 		len(headline.Report.CVEsPartially), len(headline.Report.CVEsNotExercised))
+	// Whether a request is authorised is not visible in the request, so these are CVEs no
+	// generic rule can decide. Reported beside the headline rather than removed from it.
+	if rate, ok := headline.Report.BlockRateAddressable(); ok && headline.Report.AccessControlTested() > 0 {
+		counts += fmt.Sprintf("\n*%d* access-control  ·  *%d%%* blocked excluding them",
+			headline.Report.AccessControlTested(), int(math.Round(rate*100)))
+	}
 
 	return map[string]any{
 		"text": text,
