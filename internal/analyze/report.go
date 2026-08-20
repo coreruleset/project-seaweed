@@ -63,6 +63,28 @@ var accessControlCWEs = map[string]bool{
 	"CWE-425": true, // direct request, or forced browsing
 }
 
+// bareRequestIsTheExploit names the classes where a request carrying no payload can itself
+// be the whole attack: fetching a page you should not be able to reach. For those, an
+// unblocked plain GET alongside a block is not necessarily reconnaissance -- CVE-2023-2734
+// sends `/?rest_route=/wp/v2/users`, which CRS blocks, and then the bare
+// `/wp-json/wp/v2/users`, which it does not, and the bare one is the exploit. So they are
+// left as partially blocked.
+var bareRequestIsTheExploit = map[string]bool{
+	"CWE-200": true, // exposure of sensitive information
+	"CWE-538": true, // file and directory information exposure
+	"CWE-548": true, // exposure through directory listing
+}
+
+func isBareExploitClass(cwes []string) bool {
+	for _, cwe := range cwes {
+		if bareRequestIsTheExploit[cwe] || accessControlCWEs[cwe] {
+			return true
+		}
+	}
+
+	return false
+}
+
 func isAccessControl(cwes []string) bool {
 	for _, cwe := range cwes {
 		if accessControlCWEs[cwe] {
@@ -136,6 +158,14 @@ func BuildReport(results []reader.NucleiTraceOutput, gated map[string]bool, cwes
 			if isAccessControl(cwes[result.CVENumber]) {
 				report.AccessControlNotBlocked++
 			}
+		case blockedEverythingSent(result, cwes[result.CVENumber]):
+			// Mixed statuses, but everything the template actually threw was refused: what
+			// got through was reconnaissance, or a check for the artefact the blocked
+			// request never created. "Partially blocked" would claim an attack succeeded.
+			report.CVEsBlocked = append(report.CVEsBlocked, result.CVENumber)
+			if isAccessControl(cwes[result.CVENumber]) {
+				report.AccessControlBlocked++
+			}
 		default:
 			report.CVEsPartially = append(report.CVEsPartially, result.CVENumber)
 			if isAccessControl(cwes[result.CVENumber]) {
@@ -148,6 +178,15 @@ func BuildReport(results []reader.NucleiTraceOutput, gated map[string]bool, cwes
 }
 
 // exercised reports whether the template got to send what it meant to send.
+// blockedEverythingSent reports whether a CVE with a mixed verdict should read as blocked.
+// Three things have to hold: no payload got through, something other than a plain sign-in was
+// refused, and the CVE is not a class where a bare request is itself the attack.
+func blockedEverythingSent(result reader.NucleiTraceOutput, cwes []string) bool {
+	return result.UnblockedPayloads == 0 &&
+		result.BlockedAttacks > 0 &&
+		!isBareExploitClass(cwes)
+}
+
 func exercised(result reader.NucleiTraceOutput, gated map[string]bool) bool {
 	if result.Exercised {
 		return true
