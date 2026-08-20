@@ -18,6 +18,11 @@ split:
 | identical request, different verdict | 34 | nuclei randomises the User-Agent per request |
 | different request | 14 | randomised payloads: `{{randstr}}`, oast hostnames |
 
+> **Amended 2026-08-20.** The User-Agent is now pinned ([ADR 20](0020-pin-the-user-agent.md)),
+> which removes the 34 and most of the floor with it: two identical runs measured 2 changes,
+> and `expectedChurn` is 6 rather than 48. The remaining churn is templates randomising their
+> own payloads.
+
 Removing the User-Agent noise at its source was tried first and does not work. Nuclei
 v3.8 has no `-random-agent` flag, no equivalent key in its config file, and ignores
 `-H "User-Agent: ..."` at scale — **6 of 3841 requests** used the pinned agent, with 885

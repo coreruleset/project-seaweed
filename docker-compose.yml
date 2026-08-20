@@ -110,6 +110,15 @@ services:
     # -dc keeps nuclei from merging templates that send identical requests into one
     # trace file headed by a cluster hash, whose requests cannot be attributed to a CVE.
     #
+    # -H pins the User-Agent. Without it nuclei rotates one per request -- 902 distinct
+    # values in a single run -- and CRS answers some of them differently: rules 932236 and
+    # 932237 fire on ordinary browser strings that happen to contain `ss` or a Spanish or
+    # Dutch locale tag, which is enough on its own to carry a request over the threshold.
+    # That produced blocks the ruleset never earned and made two identical runs disagree on
+    # 48 CVEs. Pinned, they disagree on 2, and the block rate drops a point to what CRS
+    # actually detects. Templates that set their own User-Agent still win, which is why a
+    # run shows two values rather than one.
+    #
     # -var supplies the credentials that templates attacking an authenticated endpoint
     # interpolate. Without them nuclei refuses to send the request — "unresolved variables
     # found: username,password" — and the CVE is reported as never exercised. The values
@@ -139,6 +148,7 @@ services:
       -var password=seaweed
       -var token=seaweed
       -var api_key=seaweed
+      -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     volumes:
       - ${SEAWEED_OUTPUT:-./output}:/output:rw
       # Pinned by scripts/fetch-templates.sh, so week-to-week results are comparable

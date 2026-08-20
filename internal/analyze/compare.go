@@ -6,11 +6,12 @@ import (
 	"strings"
 )
 
-// expectedChurn is roughly how many CVEs change bucket between two identical runs. Nuclei
-// randomises the User-Agent per request and some templates randomise their payload, and
-// neither can be turned off, so a diff of two runs always carries this much noise. See
+// expectedChurn is roughly how many CVEs change bucket between two identical runs. What is
+// left is templates that randomise their own payload; the User-Agent, which used to account
+// for nearly all of it, is now pinned in docker-compose.yml. Two identical runs measured 2
+// changes, so this leaves headroom rather than describing a hard limit. See
 // https://github.com/coreruleset/project-seaweed/issues/163.
-const expectedChurn = 48
+const expectedChurn = 6
 
 // bucketNames are the per-CVE buckets, in the order a report reads best.
 var bucketNames = []string{"blocked", "partially blocked", "not blocked", "no verdict", "not exercised"}
