@@ -383,3 +383,52 @@ func TestPayloadAccounting(t *testing.T) {
 		})
 	}
 }
+
+// A sign-in that reaches the backend is credentials arriving, not an attack getting through;
+// a sign-in the WAF refuses is an ordinary login denied, not an exploit stopped. Neither is
+// a payload. But a login form carrying an injection is an attack, and still counts.
+func TestAuthStepsAreNotPayloads(t *testing.T) {
+	tests := []struct {
+		name              string
+		trace             string
+		unblockedPayloads uint
+		blockedAttacks    uint
+	}{
+		{
+			name: "a clean login that reached the backend carried no payload",
+			trace: "[CVE-1111-1] Dumped HTTP request\nPOST /admin/index.php HTTP/1.1\nHost: h\n\nusername=seaweed&password=seaweed&action=login\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 200 OK\n",
+		},
+		{
+			name: "a login the WAF refused is not a blocked attack",
+			trace: "[CVE-1111-1] Dumped HTTP request\nPOST /admin/index.php HTTP/1.1\nHost: h\n\nusername=seaweed&password=seaweed&action=login\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 403 Forbidden\n",
+		},
+		{
+			name: "a login form carrying a SQL injection is an attack",
+			trace: "[CVE-1111-1] Dumped HTTP request\nPOST /admin/index.php HTTP/1.1\nHost: h\n\nusername=a' UNION SELECT 1,2--&password=x&action=login\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 200 OK\n",
+			unblockedPayloads: 1,
+		},
+		{
+			name: "a bodyless POST to a plain path carried nothing",
+			trace: "[CVE-1111-1] Dumped HTTP request\nPOST /search/ HTTP/1.1\nHost: h\n\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 200 OK\n",
+		},
+		{
+			name: "a bare wp-login POST is a sign-in, not an attack",
+			trace: "[CVE-1111-1] Dumped HTTP request\nPOST /wp-login.php HTTP/1.1\nHost: h\n\nlog=a&pwd=b\n" +
+				"[CVE-1111-1] Dumped HTTP response\nHTTP/1.1 403 Forbidden\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "t.txt")
+			require.NoError(t, os.WriteFile(file, []byte(tt.trace), 0o600))
+			got, err := parseNucleiTraceOutput(file)
+			require.NoError(t, err)
+			assert.Equal(t, tt.unblockedPayloads, got.UnblockedPayloads, "unblocked payloads")
+			assert.Equal(t, tt.blockedAttacks, got.BlockedAttacks, "blocked attacks")
+		})
+	}
+}

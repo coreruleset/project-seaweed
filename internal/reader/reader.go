@@ -73,32 +73,58 @@ func isMetadataProbe(method, path string) bool {
 // bare GET for one is an attack rather than reconnaissance.
 var osFiles = regexp.MustCompile(`(?i)etc/(passwd|shadow|hosts)|win\.ini|boot\.ini|/proc/|/\.(git|env|aws|ssh)\b`)
 
-// authPaths are where a template signs in before attacking. A WAF that blocks one of these
-// has refused an ordinary login, which says nothing about whether it would stop the exploit
-// that was going to follow.
-var authPaths = regexp.MustCompile(`(?i)(wp-login\.php|/login|/signin|/session|/auth|/j_security_check)`)
+// authPaths are the endpoints a template signs in through, when it names one. Templates log
+// in through /index.php and /admin/... as often, which authFields+authIntent below catch by
+// content instead.
+var authPaths = regexp.MustCompile(`(?i)(wp-login\.php|/login|/signin|/session|/logon|/auth|/j_security_check)`)
 
-// carriesPayload reports whether a request contains something a WAF could reasonably object
-// to. A GET for a plain path is reconnaissance: a template reading a version, or checking
-// afterwards for the file its blocked upload would have written. Anything else -- another
-// method, a query string, a body, an encoded character, a traversal sequence, or a path
-// naming a system file -- is the template attacking.
-func carriesPayload(method, path string, body bool) bool {
-	if !probeMethods[method] || body {
+// authFields and authIntent together mark a request as a sign-in by what it carries: a login
+// field and a login action. Both are required -- `user=` alone is a parameter and `login`
+// alone is a word, but the two together are a credential submission.
+var (
+	authFields = regexp.MustCompile(`(?i)(?:^|[&?])(?:owa_)?(?:user(?:name|_id|_login|_name)?|log(?:in)?|nick|email|pass(?:word|wd)?|pwd|pw|log_pass|login_name)=`)
+	authIntent = regexp.MustCompile(`(?i)(login|signin|sign_in|logon|sublogin|attemptlogin|do_graph_auth)`)
+)
+
+// attackTokens are shapes a real attack carries and a sign-in does not. This does not detect
+// attacks -- the WAF's job -- it only keeps a login form with an injection in it from being
+// mistaken for an ordinary sign-in, so the injection still counts as a payload.
+var attackTokens = regexp.MustCompile(`(?i)union\s+select|\bor\s+\d+=\d+|sleep\s*\(|benchmark\s*\(|and\s+\(select|<script|onerror=|javascript:|\.\./|%2e%2e|/etc/passwd|<\?php|\$\{|\|\||&&|;\s*(?:cat|id|whoami|ping|curl|wget)|'\s*(?:or|and|union)\b|extractvalue|updatexml`)
+
+// isBenignAuth reports whether a request is a sign-in carrying no attack of its own. A WAF
+// that blocks one has refused an ordinary login, which says nothing about the exploit the
+// login was leading up to; and a login that reaches the backend is credentials arriving, not
+// a payload getting through. A body that overran the capture counts as not benign, since an
+// attack token could sit past the cut.
+func isBenignAuth(path, body string, truncated bool) bool {
+	if truncated {
+		return false
+	}
+	blob := path + "\n" + body
+	if attackTokens.MatchString(blob) {
+		return false
+	}
+	if authPaths.MatchString(path) && !strings.Contains(path, "?") {
 		return true
 	}
-	if strings.ContainsAny(path, "?%") || strings.Contains(path, "..") {
-		return true
-	}
 
-	return osFiles.MatchString(path)
+	return authFields.MatchString(blob) && authIntent.MatchString(blob)
 }
 
-// isAuthStep reports whether a request is a plain sign-in. A query string means the path is
-// carrying an attack of its own -- `/wp-login.php?login-error=<script>` is an XSS payload
-// aimed at the login page, not a login.
-func isAuthStep(path string) bool {
-	return !strings.Contains(path, "?") && authPaths.MatchString(path)
+// carriesPayload reports whether a request put content in front of the WAF to judge: a query
+// string, a request body, an encoded character, a traversal sequence, or a path naming a
+// system file. A bare GET or a bodyless request to a plain path carries nothing -- it is
+// reconnaissance, or a follow-up fetch for the artefact a blocked step would have created. A
+// sign-in carries credentials rather than an attack, so it is subtracted here.
+func carriesPayload(path, body string, truncated bool) bool {
+	if isBenignAuth(path, body, truncated) {
+		return false
+	}
+	if strings.ContainsAny(path, "?%") || strings.Contains(path, "..") || osFiles.MatchString(path) {
+		return true
+	}
+
+	return strings.TrimSpace(body) != ""
 }
 
 // probeMethods carry nothing a WAF could object to. Any other method aimed at the root
@@ -208,10 +234,11 @@ type traceScanner struct {
 	delivered bool
 
 	// what the request that produced the response being read looked like
-	inRequest  bool
-	reqMethod  string
-	reqPath    string
-	reqHasBody bool
+	inRequest    bool
+	reqMethod    string
+	reqPath      string
+	reqBody      strings.Builder
+	reqBodyTrunc bool
 }
 
 func (s *traceScanner) line(text string) {
@@ -234,7 +261,9 @@ func (s *traceScanner) line(text string) {
 	// being blocks.
 	if request := requestPattern.FindStringSubmatch(text); request != nil {
 		s.settle()
-		s.inRequest, s.reqMethod, s.reqPath, s.reqHasBody = true, request[1], request[2], false
+		s.inRequest, s.reqMethod, s.reqPath = true, request[1], request[2]
+		s.reqBody.Reset()
+		s.reqBodyTrunc = false
 		switch {
 		case isMetadataProbe(request[1], request[2]):
 			s.trace.MetadataProbes++
@@ -256,9 +285,18 @@ func (s *traceScanner) line(text string) {
 		return
 	}
 
-	// A non-header line inside the request is its body.
+	// A non-header line inside the request is its body. Kept, not just flagged, because
+	// telling a login form from an injection needs to see the fields. Bounded: a form body
+	// is small, and a body large enough to overrun the cap is treated as possibly hiding an
+	// attack past the cut (see isBenignAuth).
 	if s.inRequest && strings.TrimSpace(text) != "" && !headerPattern.MatchString(text) {
-		s.reqHasBody = true
+		const bodyCap = 8192
+		if s.reqBody.Len() < bodyCap {
+			s.reqBody.WriteString(text)
+			s.reqBody.WriteByte('\n')
+		} else {
+			s.reqBodyTrunc = true
+		}
 	}
 
 	if s.awaiting && strings.Contains(text, BackendMarker) {
@@ -281,12 +319,11 @@ func (s *traceScanner) settle() {
 	// Only where the request line was seen. A response dumped without one says nothing about
 	// what was sent, and guessing "not a GET, so a payload" from an empty method would count
 	// an attack that may not exist.
-	if s.reqMethod != "" {
-		if carriesPayload(s.reqMethod, s.reqPath, s.reqHasBody) && s.status != http.StatusForbidden {
-			s.trace.UnblockedPayloads++
-		}
-		if s.status == http.StatusForbidden && !isAuthStep(s.reqPath) {
+	if s.reqMethod != "" && carriesPayload(s.reqPath, s.reqBody.String(), s.reqBodyTrunc) {
+		if s.status == http.StatusForbidden {
 			s.trace.BlockedAttacks++
+		} else {
+			s.trace.UnblockedPayloads++
 		}
 	}
 

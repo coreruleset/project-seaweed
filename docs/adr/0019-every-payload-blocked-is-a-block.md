@@ -45,6 +45,30 @@ A request carries a payload if it uses a method other than `GET` or `HEAD`, has 
 string, has a body, contains an encoded character or a traversal sequence, or names a system
 file outright. Everything else is a plain fetch.
 
+> **Amended 2026-08-21.** The payload test was refined twice, both narrowing what counts, and
+> both because a request that carried no attack was being counted as one.
+>
+> A request carries a payload when it puts *content* in front of the WAF: a query string, a
+> body, an encoded character, a traversal sequence, or a path naming a system file. The method
+> no longer counts on its own — a bodyless, query-less `POST` to a plain path carries nothing a
+> rule can read, so it is a plain fetch like a bare `GET`.
+>
+> And a sign-in is credentials, not an attack. A request whose body carries a login field and a
+> login action, or that is aimed at a known auth endpoint, is not a payload — unless it also
+> carries an attack token (`union select`, `<script`, `../`, a shell metacharacter, …), which
+> is a login-form injection and does count. The reader keeps the request body, bounded, to make
+> this distinction; a body large enough to overrun the bound is treated as possibly hiding an
+> attack past the cut. The same test is used on the blocked side: a WAF that refused only an
+> ordinary login is not credited with stopping the exploit that login preceded (the 18 cases
+> this ADR already noted).
+>
+> Measured on run 32421286430, this moves CVEs from partially blocked to blocked, all of them
+> a login or a recon request passing while every actual attack was refused: PL1 49.9% → 55.2%,
+> PL2 57.4% → 62.8%, PL3 65.0% → 66.3%, PL4 70.2% → 71.6%. The move is largest at PL1 because a
+> login body often trips a rule at higher levels, so those CVEs are already fully blocked there
+> and never reach the partial bucket. `cves_not_blocked` does not change at any level — this
+> only reclassifies within the mixed-verdict set.
+
 Condition 2 exists because a WAF that refuses `POST /wp-login.php` has refused an ordinary
 login, which says nothing about the exploit that login was leading to — crediting it would
 reward a false positive. A request to an auth path *with* a query string is not a sign-in:
