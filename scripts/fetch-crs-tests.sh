@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # renovate: datasource=github-releases depName=coreruleset/coreruleset
-version="${CRS_VERSION:-v4.28.0}"
+version="${CRS_VERSION:-v4.29.0}"
 
 cd "$(dirname "$0")/.."
 
