@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # renovate: datasource=github-releases depName=projectdiscovery/nuclei-templates
-version="${NUCLEI_TEMPLATES_VERSION:-v10.4.7}"
+version="${NUCLEI_TEMPLATES_VERSION:-v10.4.8}"
 
 cd "$(dirname "$0")/.."
 
