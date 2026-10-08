@@ -96,7 +96,7 @@ services:
     # so nothing leaves the runner: the callback never arrives, because the domain does
     # not resolve, and it does not need to — what is measured is whether the WAF stopped
     # the request, not whether the target phoned home.
-    image: "projectdiscovery/interactsh-server:v1.3.1@sha256:f75d1fdeb0598012ce4560158232a9ad99701da28b31c141dc95d03402e4aa4f"
+    image: "projectdiscovery/interactsh-server:v1.4.1@sha256:246d8988fed0cfefb28f904c4e1ec4a6bb4b6931288d10794a31577687f02471"
     hostname: interactsh
     command: >-
       -domain oast.seaweed.test
